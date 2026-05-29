@@ -79,11 +79,16 @@ sequenceDiagram
   participant DB
 
   User->>Vue: open home
-  Vue->>API: GET /api/portfolio/today/
-  API->>Engine: get_today_portfolio()
+  Vue->>API: GET /api/portfolio/today/?risk_type=neutral
+  API->>Engine: get_today_portfolio(risk_type)
   Engine->>DB: load latest ScoreSnapshot
-  Engine->>DB: filter reliability >= 70, company >= 60, timing >= 60 and calculate risk-adjusted total_score >= 70
-  Engine->>DB: update PortfolioRun and PortfolioItem weights (proportional to total_score - 70)
-  API-->>Vue: portfolio JSON
-  Vue-->>User: show weighted alpha portfolio
+  Engine->>DB: filter by risk-specific component hurdles (e.g., Neutral: company>=70, timing>=70, reliability>=70)
+  Note over Engine: Check total_score >= 70 (Hurdle Pass)
+  Engine->>Engine: Determine Cash weight based on pass count (e.g., 4 items -> Cash 15%)
+  Engine->>Engine: Calculate excess-score weights for stocks (proportional to total_score - 70)
+  Engine->>Engine: Apply Sector Cap (Neutral: 30%) and redistribute excess to other sectors
+  Note over Engine: Un-distributable excess forced to Cash
+  Engine->>DB: update PortfolioRun and PortfolioItem weights / Cash item
+  API-->>Vue: portfolio JSON (includes items & cash & sector warning)
+  Vue-->>User: show weighted alpha portfolio with Cash asset
 ```

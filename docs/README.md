@@ -102,7 +102,7 @@ AlphaPick 프로젝트의 요구사항 및 설계 문서는 다음과 같이 유
 
 ### 2.1. 요구사항 및 기획 (Requirements)
 - **[PRD.md](file:///docs/PRD.md)**: AlphaPick의 최초 문제 정의, 코어 가치 제안, 평가지표 및 수용 기준을 설명하는 최상위 요구사항 정의서입니다.
-- **[RECOMMENDATION_SPEC.md](file:///docs/RECOMMENDATION_SPEC.md)**: 성향별 다이내믹 허들, 시장 상황별 현금 비중, Sector Cap 및 재분배 등 포트폴리오 추천 로직의 고도화 스펙을 상세 기술한 기능 명세서입니다.
+- **[recommendation_requirements.md](file:///docs/recommendation_requirements.md)**: 성향별 다이내믹 허들, 시장 상황별 현금 비중, Sector Cap 및 재분배 등 포트폴리오 추천 로직의 고도화 스펙을 상세 기술한 기능 명세서입니다.
 - **[WIREFRAME.md](file:///docs/WIREFRAME.md)**: 메인 포트폴리오 대시보드, 종목 스코어 리포트 상세화면, 백테스트 성과 분석 화면의 UI 레이아웃 설계도입니다.
 
 ### 2.2. 시스템 설계 및 일정 (Design & Timeline)
