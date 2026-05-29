@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import BacktestView from "../views/BacktestView.vue";
+import CommunityView from "../views/CommunityView.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import MyPageView from "../views/MyPageView.vue";
@@ -16,6 +17,7 @@ const routes = [
   { path: "/stocks/:ticker", name: "stock-report", component: StockReportView, props: true },
   { path: "/stocks/:ticker/details/:section/:index", name: "metric-detail", component: StockMetricDetailView, props: true },
   { path: "/backtest", name: "backtest", component: BacktestView },
+  { path: "/community", name: "community", component: CommunityView },
   { path: "/login", name: "login", component: LoginView },
   { path: "/register", name: "register", component: RegisterView },
   { path: "/mypage", name: "mypage", component: MyPageView },

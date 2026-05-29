@@ -19,8 +19,11 @@
           <Activity :size="18" />
           <span class="hidden sm:inline">백테스트</span>
         </RouterLink>
+        <RouterLink class="btn-ghost text-slate-700" to="/community">
+          <MessageCircle :size="18" />
+          <span class="hidden sm:inline">커뮤니티</span>
+        </RouterLink>
 
-        <!-- 인증 관련 링크 -->
         <template v-if="authStore.isAuthenticated">
           <RouterLink class="btn-ghost text-slate-700" to="/mypage">
             <User :size="18" />
@@ -44,7 +47,7 @@
       </nav>
 
       <div class="hidden rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700 lg:block">
-        가치·타이밍 70점+
+        회사 가치와 타이밍 70점 기준
       </div>
     </div>
   </header>
@@ -52,7 +55,17 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { Activity, LineChart, LogIn, LogOut, PieChart, Search, User, UserPlus } from "@lucide/vue";
+import {
+  Activity,
+  LineChart,
+  LogIn,
+  LogOut,
+  MessageCircle,
+  PieChart,
+  Search,
+  User,
+  UserPlus,
+} from "@lucide/vue";
 import { useAuthStore } from "../../stores/auth";
 
 const authStore = useAuthStore();
