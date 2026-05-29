@@ -1,6 +1,6 @@
-﻿# AlphaPick Product Requirements Document
+# AlphaPick Product Requirements Document
 
-> Version v1.0 | 작성일 2026년 5월 22일 | 프로젝트 SSAFY 관통 프로젝트 금융 | 기술 스택 Django DRF + Vue 3 + Pinia + Chart.js + AI Comment API
+> Version v1.0 | 작성일 2026년 5월 22일 | 프로젝트 SSAFY 관통 프로젝트 금융 | 기술 스택 Django 4.2.30 DRF + Vue 3 + Pinia + Chart.js + FastAPI + Celery + Redis
 
 ## 1. 문제 정의
 
@@ -22,7 +22,50 @@ AlphaPick은 감이나 루머에 의존하는 종목 선택을 줄이고, 정량
 
 메인 화면은 단순 TOP 10 리스트가 아니라 **추천 포트폴리오**를 보여준다. 사용자는 편입 종목, 종목별 점수, 현금 비중, Sector Cap 조정 결과, 핵심 추천 사유, 주의 사유를 확인할 수 있다. 각 종목을 클릭하면 KB 스타일의 상세 스코어 리포트에서 차트, 지표 카드, 기술/재무 지표, 뉴스/공시, AI 코멘트를 확인한다.
 
-## 3. 핵심 차별화
+## 3. 도전형 시스템 아키텍처
+
+본 프로젝트는 메인 프레임워크인 Django 4.2.30과 Vue 3를 주축으로 하되, 비동기 작업 및 고성능 AI 추론 격리를 위해 보조 컴포넌트(FastAPI, Celery, Redis)를 유기적으로 연동한 도전형 아키텍처를 채택한다.
+
+```mermaid
+graph TD
+    subgraph Client [Frontend UI]
+        Vue[Vue 3 SPA]
+    end
+
+    subgraph Django_Main [Django Core Backend]
+        Django[Django 4.2.30 REST Framework]
+        DB[(SQLite Database)]
+    end
+
+    subgraph FastAPI_AI [FastAPI Sub Server]
+        FastAPI[FastAPI AI Agent]
+        LLM[LLM API / OpenAI SDK]
+    end
+
+    subgraph Async_Scheduler [Celery & Redis Message Broker]
+        Beat[Celery Beat Scheduler]
+        Broker((Redis Queue))
+        Worker[Celery Worker]
+    end
+
+    %% Communication Links
+    Vue <-->|REST API / JSON| Django
+    Django <-->|ORM| DB
+    Django <-->|HTTP Client / JSON| FastAPI
+    FastAPI <-->|AI Prompt / SDK| LLM
+    
+    %% Async Job Processing
+    Beat -->|Schedule Trigger| Broker
+    Broker -->|Fetch Task| Worker
+    Worker -->|Write Output| DB
+```
+
+- **Django REST Framework (메인 백엔드)**: 투자 성향별 자산 배분 알고리즘을 수행하며, API 서비스 게이트웨이 및 영구 데이터베이스 트랜잭션을 독점 관리합니다.
+- **FastAPI AI Server (보조 AI 서버)**: OpenAI API 연동 시 발생하는 수 초 이상의 지연 시간(Blocking I/O)으로부터 메인 서버를 구호하기 위해 분리된 AI 에이전트 전용 비동기 서버입니다.
+- **Celery & Redis (비동기 배치 스케줄러)**: 매일 장 마감 후 외부 주가 정보를 비동기로 크롤링하고 포트폴리오를 스케줄 시간마다 자동으로 갱신하는 배치를 수행합니다.
+
+## 4. 핵심 차별화
+
 
 | 차별화 요소 | 설명 |
 |---|---|

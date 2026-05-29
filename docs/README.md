@@ -65,14 +65,20 @@ AlphaPick의 핵심 설계 사상은 **"정량적 밸류·모멘텀 필터링"**
   }
   ```
 
-- **Mermaid 시스템 아키텍처 다이어그램**:
+- **도전형 시스템 아키텍처 다이어그램**:
   ```mermaid
   graph TD
     User([사용자]) <--> Vue[Vue 3 SPA 프론트엔드]
-    Vue <--> API[Django DRF API]
-    API <--> Services[Portfolio / Backtest Engine]
+    Vue <--> Django[Django 4.2.30 DRF API]
+    Django <--> Services[Portfolio / Backtest Engine]
     Services <--> DB[(SQLite Database)]
-    Services <--> Command[Django Admin Command / Data Ingest]
+    Django <--> FastAPI[FastAPI AI Comment Server]
+    FastAPI <--> LLM[LLM API / OpenAI SDK]
+    
+    %% 비동기 큐 스태킹
+    Scheduler[Celery Beat Scheduler] --> Redis((Redis Message Broker))
+    Redis --> Worker[Celery Worker]
+    Worker --> DB
   ```
 
 ---
@@ -81,9 +87,12 @@ AlphaPick의 핵심 설계 사상은 **"정량적 밸류·모멘텀 필터링"**
 신임 개발자가 이 코드를 분석하고 기여하기 위한 단계적 가이드라인입니다.
 
 #### Part I: 기술 기반 학습
-- **Backend (Python 3.12 + Django 4.2)**: 
-  - Django Rest Framework(DRF)를 사용해 JSON API 통신을 구현합니다.
+- **Backend (Python 3.10+ & Django 4.2.30 & DRF)**: 
+  - Django Rest Framework(DRF) Serializer를 이용해 오늘의 포트폴리오 데이터를 엄격하게 타입 직렬화합니다.
   - JWT 토큰 기반 회원 인증은 `rest_framework_simplejwt` 라이브러리를 사용합니다.
+- **보조 서비스 (FastAPI & Celery & Redis)**:
+  - **FastAPI**: AI 추론 연산 처리를 격리하여 구동하는 보조 API 서버입니다.
+  - **Celery & Redis**: 장 마감 후 주기적인 주가 데이터 업데이트 및 백테스트의 비동기 처리를 담당합니다.
 - **Frontend (Vue 3 + Pinia + Vue Router + Tailwind CSS)**: 
   - 상태 관리는 Pinia를 기반으로 하며, 사용자 세션은 `frontend/src/stores/auth.js`에서 통합 관리합니다.
   - 가격 차트 및 백테스트 차트는 Canvas API를 래핑한 Lucide Icons 및 인라인 SVG 컴포넌트를 활용합니다.
@@ -106,10 +115,48 @@ AlphaPick 프로젝트의 요구사항 및 설계 문서는 다음과 같이 유
 - **[WIREFRAME.md](WIREFRAME.md)**: 메인 포트폴리오 대시보드, 종목 스코어 리포트 상세화면, 백테스트 성과 분석 화면의 UI 레이아웃 설계도입니다.
 
 ### 2.2. 시스템 설계 및 일정 (Design & Timeline)
-- **[UML.md](UML.md)**: 유스케이스, ERD 데이터베이스 관계도, 포트폴리오 조회 시퀀스 다이어그램 등 시스템 구성 설계서입니다.
+- **[UML.md](UML.md)**: 유스케이스, ERD 데이터베이스 관계도, 포트폴리오 및 비동기 배치 수집, AI 코멘트 캐싱 시퀀스 다이어그램 등 시스템 구성 설계서입니다.
 - **[WBS_GANTT.md](WBS_GANTT.md)**: 프로젝트 개발 일정 관리 및 WBS 산출물 체크리스트입니다.
 
 ### 2.3. 품질 검증 및 리팩토링 (QA & Maintenance)
 - **[QA.md](QA.md)**: 핵심 시나리오 및 수용 기준 통과 여부를 검증하기 위한 QA 테스트 시나리오 시트입니다.
 - **[ARCHITECTURE_CLEANUP.md](ARCHITECTURE_CLEANUP.md)**: 이전 레거시 피트니스 앱 코드의 삭제 내역 및 정규화 리팩토링 히스토리를 기술한 문서입니다.
 - **[PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md)**: 최종 관통 프로젝트 시연 및 아키텍처 발표를 위한 핵심 발표자료 대본 가이드입니다.
+
+---
+
+## 3. ⚙️ 로컬 개발 환경 및 실행 가이드 (Challenge Stack)
+
+본 프로젝트는 여러 분산 컴포넌트를 사용하므로, 다음 지침에 따라 순서대로 실행하십시오.
+
+### 3.1. 필수 인프라 구동 (Redis)
+- Windows 환경에서는 WSL을 이용하거나 Windows용 Redis 포트 버전을 실행합니다.
+  ```bash
+  # Redis 서버 실행 (기본 포트: 6379)
+  redis-server
+  ```
+
+### 3.2. 보조 AI 서버 구동 (FastAPI)
+- `backend/ai_server/` 폴더 내 가상환경을 활성화하고 uvicorn을 기동합니다.
+  ```bash
+  # FastAPI 서버 구동
+  cd backend/ai_server
+  uvicorn main:app --reload --port 8080
+  ```
+
+### 3.3. 비동기 큐 구동 (Celery Worker)
+- **중요**: Windows OS에서는 반드시 단일 스레드로 안정 실행을 지시하기 위해 `-P solo` 옵션을 기재해야 합니다.
+  ```bash
+  # Celery Worker 기동 (Django root 디렉토리에서 실행)
+  celery -A config worker --loglevel=info -P solo
+  ```
+
+### 3.4. 메인 Django 백엔드 및 Vue 3 프론트엔드 구동
+  ```bash
+  # Django 서버 실행
+  python manage.py runserver
+  
+  # Vue 3 프론트엔드 개발 서버 실행
+  cd frontend
+  npm run dev
+  ```
