@@ -82,8 +82,8 @@ sequenceDiagram
   Vue->>API: GET /api/portfolio/today/
   API->>Engine: get_today_portfolio()
   Engine->>DB: load latest ScoreSnapshot
-  Engine->>DB: filter total_score >= 70 and reliability >= 70
-  Engine->>DB: update PortfolioRun and PortfolioItem weights
+  Engine->>DB: filter reliability >= 70, company >= 60, timing >= 60 and calculate risk-adjusted total_score >= 70
+  Engine->>DB: update PortfolioRun and PortfolioItem weights (proportional to total_score - 70)
   API-->>Vue: portfolio JSON
   Vue-->>User: show weighted alpha portfolio
 ```

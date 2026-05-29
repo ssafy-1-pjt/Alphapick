@@ -9,7 +9,7 @@ from .models import AICommentCache, PortfolioItem, PortfolioRun, PriceDaily, Sco
 
 PORTFOLIO_THRESHOLD = 70
 MIN_RELIABILITY_SCORE = 70
-MIN_COMPONENT_SCORE = 70
+MIN_COMPONENT_SCORE = 60
 PRICE_HISTORY_DAYS = 365
 BACKTEST_PERIODS = {
     "1w": {"days": 7, "label": "1주"},
@@ -196,10 +196,13 @@ def build_dynamic_portfolio_payload(base_date=None, risk_type=RISK_TYPE_NEUTRAL)
         and not row["low_liquidity_flag"]
         and not row["fail_safe_flag"]
     ]
-    score_sum = sum(max(row["eligibility_score"] - PORTFOLIO_THRESHOLD, 1) for row in items)
+    score_sum = sum(max(row["total_score"] - PORTFOLIO_THRESHOLD, 0) for row in items)
     for row in items:
-        score_edge = max(row["eligibility_score"] - PORTFOLIO_THRESHOLD, 1)
-        row["weight"] = round((score_edge / score_sum) * 100, 2) if score_sum else 0
+        if score_sum > 0:
+            score_edge = max(row["total_score"] - PORTFOLIO_THRESHOLD, 0)
+            row["weight"] = round((score_edge / score_sum) * 100, 2)
+        else:
+            row["weight"] = round(100.0 / len(items), 2) if items else 0
     item_tickers = {row["ticker"] for row in items}
     watch_rows = [row for row in rows if row["ticker"] not in item_tickers][:5]
     watch_candidates_payload = [
@@ -264,7 +267,7 @@ def build_dynamic_portfolio_payload(base_date=None, risk_type=RISK_TYPE_NEUTRAL)
 def ensure_portfolio_run(base_date=None):
     base_date = base_date or latest_score_date() or date.today()
     scores = list(portfolio_candidates(base_date))
-    score_sum = sum(max(weighted_component_score(score) - PORTFOLIO_THRESHOLD, 1) for score in scores)
+    score_sum = sum(max(score.total_score - PORTFOLIO_THRESHOLD, 0) for score in scores)
     portfolio_score = round(sum(score.total_score for score in scores) / len(scores), 2) if scores else 0
 
     run, _ = PortfolioRun.objects.update_or_create(
@@ -280,8 +283,11 @@ def ensure_portfolio_run(base_date=None):
     run.items.all().delete()
 
     for score in scores:
-        score_edge = max(weighted_component_score(score) - PORTFOLIO_THRESHOLD, 1)
-        weight = round((score_edge / score_sum) * 100, 2) if score_sum else 0
+        if score_sum > 0:
+            score_edge = max(score.total_score - PORTFOLIO_THRESHOLD, 0)
+            weight = round((score_edge / score_sum) * 100, 2)
+        else:
+            weight = round(100.0 / len(scores), 2) if scores else 0
         PortfolioItem.objects.create(
             portfolio_run=run,
             stock=score.stock,
@@ -481,9 +487,14 @@ def calculate_backtest(benchmark="KOSPI", period="1y", risk_type=RISK_TYPE_NEUTR
     risk_type = normalize_risk_type(risk_type)
     end_date = latest_price_date() or latest_score_date() or date.today()
     start_date = end_date - timedelta(days=BACKTEST_PERIODS[period]["days"])
-    portfolio_payload = build_dynamic_portfolio_payload(risk_type=risk_type)
-    items = portfolio_payload.get("items", [])
-    if not items:
+
+    price_dates = sorted(list(
+        PriceDaily.objects.filter(date__gte=start_date, date__lte=end_date)
+        .values_list("date", flat=True)
+        .distinct()
+    ))
+
+    if len(price_dates) < 2:
         return {
             "benchmark": benchmark,
             "benchmarkSource": benchmark,
@@ -497,17 +508,99 @@ def calculate_backtest(benchmark="KOSPI", period="1y", risk_type=RISK_TYPE_NEUTR
             "winRate": 0,
             "maxDrawdown": 0,
             "series": [],
-            "summary": "아직 생성된 포트폴리오가 없습니다.",
+            "summary": "백테스트를 위한 충분한 가격 데이터가 없습니다.",
         }
 
-    portfolio_series = portfolio_price_series(items, start_date, end_date)
-    benchmark_series, benchmark_source = kospi_benchmark_series(start_date, end_date)
-    if not benchmark_series:
-        benchmark_series = market_proxy_benchmark_series(start_date, end_date)
-    series, win_rate, max_drawdown = align_backtest_series(portfolio_series, benchmark_series, len(items))
+    snapshots = ScoreSnapshot.objects.filter(
+        base_date__gte=start_date,
+        base_date__lte=end_date,
+        reliability_score__gte=MIN_RELIABILITY_SCORE,
+        company_score__gte=MIN_COMPONENT_SCORE,
+        timing_score__gte=MIN_COMPONENT_SCORE,
+        stock__is_active=True,
+        stock__is_tradable=True,
+        stock__is_universe_included=True,
+        stock__low_liquidity_flag=False,
+        fail_safe_flag=False
+    ).select_related("stock")
+
+    portfolio_by_date = {}
+    for snap in snapshots:
+        portfolio_by_date.setdefault(snap.base_date, []).append(snap)
+
+    benchmark_series_raw, benchmark_source = kospi_benchmark_series(start_date, end_date)
+    if not benchmark_series_raw:
+        benchmark_series_raw = market_proxy_benchmark_series(start_date, end_date)
+
+    portfolio_value = 100.0
+    portfolio_series = []
+
+    prices_raw = PriceDaily.objects.filter(
+        date__gte=start_date,
+        date__lte=end_date
+    ).values("stock_id", "date", "close_price")
+
+    price_map = {}
+    for p in prices_raw:
+        price_map.setdefault(p["stock_id"], {})[p["date"]] = float(p["close_price"])
+
+    active_portfolio = []
+
+    for i, current_date in enumerate(price_dates):
+        if current_date in portfolio_by_date:
+            day_scores = portfolio_by_date[current_date]
+            valid_items = []
+            for score in day_scores:
+                adjusted_score = score_for_risk(score, risk_type)
+                company_score = company_score_for_risk(score, risk_type)
+                timing_score = timing_score_for_risk(score, risk_type)
+                if company_score >= MIN_COMPONENT_SCORE and timing_score >= MIN_COMPONENT_SCORE:
+                    valid_items.append({
+                        "ticker": score.stock.ticker,
+                        "total_score": adjusted_score,
+                    })
+
+            score_sum = sum(max(item["total_score"] - PORTFOLIO_THRESHOLD, 0) for item in valid_items)
+            active_portfolio = []
+            for item in valid_items:
+                if score_sum > 0:
+                    weight = max(item["total_score"] - PORTFOLIO_THRESHOLD, 0) / score_sum
+                else:
+                    weight = 1.0 / len(valid_items) if valid_items else 0
+                active_portfolio.append((item["ticker"], weight))
+
+        daily_return = 0.0
+        if i < len(price_dates) - 1:
+            next_date = price_dates[i + 1]
+            total_weighted_return = 0.0
+            total_active_weight = 0.0
+
+            for ticker, weight in active_portfolio:
+                stock_prices = price_map.get(ticker, {})
+                p_curr = stock_prices.get(current_date)
+                p_next = stock_prices.get(next_date)
+                if p_curr and p_next and p_curr > 0:
+                    ret = (p_next / p_curr) - 1.0
+                    total_weighted_return += ret * weight
+                    total_active_weight += weight
+
+            if total_active_weight > 0:
+                daily_return = (total_weighted_return / total_active_weight) * 100.0
+
+        portfolio_series.append({
+            "date": current_date,
+            "value": round(portfolio_value, 4)
+        })
+
+        portfolio_value *= (1.0 + daily_return / 100.0)
+
+    series, win_rate, max_drawdown = align_backtest_series(portfolio_series, benchmark_series_raw, len(active_portfolio))
     portfolio_return = series[-1]["portfolioReturn"] if series else 0
     benchmark_return = series[-1]["benchmarkReturn"] if series else 0
     alpha = round(portfolio_return - benchmark_return, 2)
+
+    current_portfolio_payload = build_dynamic_portfolio_payload(risk_type=risk_type)
+    current_item_count = len(current_portfolio_payload.get("items", []))
 
     return {
         "benchmark": benchmark.upper(),
@@ -516,15 +609,15 @@ def calculate_backtest(benchmark="KOSPI", period="1y", risk_type=RISK_TYPE_NEUTR
         "periodLabel": BACKTEST_PERIODS[period]["label"],
         "startDate": series[0]["date"] if series else start_date.isoformat(),
         "endDate": series[-1]["date"] if series else end_date.isoformat(),
-        "rebalanceType": "period-hold",
+        "rebalanceType": "daily",
         "portfolioReturn": round(portfolio_return, 2),
         "benchmarkReturn": round(benchmark_return, 2),
         "alpha": alpha,
         "winRate": win_rate,
         "maxDrawdown": max_drawdown,
-        "itemCount": len(items),
+        "itemCount": current_item_count,
         "series": series,
-        "summary": f"현재 {RISK_LABELS[risk_type]} 추천 포트폴리오를 {BACKTEST_PERIODS[period]['label']} 전 매수해 보유했다고 가정한 수익률입니다.",
+        "summary": f"현재 {RISK_LABELS[risk_type]} 추천 전략으로 과거 {BACKTEST_PERIODS[period]['label']} 동안 매일 리밸런싱하며 운영했다고 가정하고 시뮬레이션한 결과입니다.",
     }
 
 

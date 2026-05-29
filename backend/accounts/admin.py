@@ -5,8 +5,8 @@ from .models import User
 
 
 @admin.register(User)
-class OutfitUserAdmin(UserAdmin):
+class AlphaPickUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ("OUTFIT profile", {"fields": ("nickname", "level", "preferred_location", "preferred_categories", "onboarding_completed")}),
+        ("AlphaPick Profile", {"fields": ("nickname", "risk_type")}),
     )
-    list_display = ("username", "email", "nickname", "level", "preferred_location", "onboarding_completed", "is_staff")
+    list_display = ("username", "email", "nickname", "risk_type", "is_staff")

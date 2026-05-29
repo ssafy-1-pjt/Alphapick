@@ -18,8 +18,8 @@ class AlphaPickPortfolioTests(TestCase):
         self.assertAlmostEqual(sum(item.weight for item in portfolio.items.all()), 100, delta=0.1)
         self.assertTrue(
             all(
-                item.score_snapshot.company_score >= PORTFOLIO_THRESHOLD
-                and item.score_snapshot.timing_score >= PORTFOLIO_THRESHOLD
+                item.score_snapshot.company_score >= 60
+                and item.score_snapshot.timing_score >= 60
                 for item in portfolio.items.select_related("score_snapshot")
             )
         )
@@ -32,7 +32,7 @@ class AlphaPickPortfolioTests(TestCase):
         self.assertEqual(round(sum(item["weight"] for item in portfolio.json()["items"]), 1), 100)
         self.assertEqual(portfolio.json()["userRiskType"], "neutral")
         self.assertTrue(
-            all(item["company_score"] >= PORTFOLIO_THRESHOLD and item["timing_score"] >= PORTFOLIO_THRESHOLD for item in portfolio.json()["items"])
+            all(item["company_score"] >= 60 and item["timing_score"] >= 60 for item in portfolio.json()["items"])
         )
 
         aggressive = client.get("/api/portfolio/today/?risk_type=aggressive")

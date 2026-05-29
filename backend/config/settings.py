@@ -44,10 +44,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "accounts",
-    "catalog",
-    "reviews",
-    "workouts",
-    "recommendations",
     "data_ingest",
     "stocks",
 ]

@@ -14,10 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "nickname",
-            "level",
-            "preferred_location",
-            "preferred_categories",
-            "onboarding_completed",
+            "risk_type",
             "created_at",
         )
         read_only_fields = ("id", "created_at")
@@ -34,9 +31,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             "email",
             "password",
             "nickname",
-            "level",
-            "preferred_location",
-            "preferred_categories",
+            "risk_type",
         )
 
     def create(self, validated_data):
@@ -47,7 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class OutfitTokenObtainPairSerializer(TokenObtainPairSerializer):
+class AlphaPickTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data

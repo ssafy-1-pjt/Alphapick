@@ -11,6 +11,18 @@
             <span class="badge bg-slate-100 text-slate-600">{{ report.stock.ticker }}</span>
             <span class="badge bg-blue-50 text-blue-700">{{ report.stock.sector }}</span>
             <span class="badge bg-emerald-50 text-emerald-700">{{ report.stock.primary_theme }}</span>
+
+            <!-- 관심종목 토글 별표 버튼 -->
+            <button
+              v-if="authStore.isAuthenticated"
+              type="button"
+              class="ml-2 flex items-center justify-center p-1.5 transition text-slate-400 hover:text-amber-500"
+              :class="{ 'text-amber-500': isWatchlisted }"
+              @click="toggleWatchlist"
+              aria-label="관심종목 토글"
+            >
+              <Star :size="24" :fill="isWatchlisted ? '#f59e0b' : 'none'" />
+            </button>
           </div>
           <div class="mt-2 flex flex-wrap gap-2">
             <span class="badge bg-slate-950 text-white">{{ report.score.signal }}</span>
@@ -21,12 +33,7 @@
           </div>
           <p class="mt-2 text-sm font-bold text-slate-500">데이터 기준일 {{ report.score.base_date }}</p>
         </div>
-        <button class="btn-primary" type="button" @click="captureHint = true">캡처</button>
       </div>
-
-      <p v-if="captureHint" class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
-        브라우저 캡처 기능으로 현재 리포트를 저장할 수 있습니다.
-      </p>
 
       <section class="rounded-lg border border-slate-800 bg-slate-300 p-7 text-center text-slate-950">
         <h2 class="text-4xl font-black leading-tight md:text-5xl">{{ report.score.headline }}</h2>
@@ -253,6 +260,27 @@
             </div>
           </section>
 
+          <!-- CAN SLIM 진단 카드 섹션 -->
+          <section v-if="report.score.can_slim?.length" class="panel p-5">
+            <h2 class="border-l-4 border-emerald-500 pl-3 text-2xl font-black text-slate-950">CAN SLIM 진단</h2>
+            <p class="mt-2 text-sm font-bold text-slate-500">성장주 발굴 공식 CAN SLIM 지표별 준수 여부를 확인합니다.</p>
+            <div class="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              <div v-for="item in report.score.can_slim" :key="item.code" class="rounded-lg border border-slate-100 p-4">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="flex h-8 w-8 items-center justify-center rounded bg-emerald-600 text-sm font-black text-white">
+                    {{ item.code }}
+                  </span>
+                  <span class="badge" :class="item.status === 'PASS' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                    {{ item.status }}
+                  </span>
+                </div>
+                <p class="mt-3 font-black text-slate-900">{{ item.name }}</p>
+                <p class="mt-1 text-sm font-bold text-slate-600">수치: {{ item.value }}</p>
+                <p class="mt-2 text-sm text-slate-500 leading-6">{{ item.description }}</p>
+              </div>
+            </div>
+          </section>
+
           <IndicatorSection title="기술 지표" section="technical" :ticker="report.stock.ticker" :items="report.score.technical_indicators" />
           <IndicatorSection title="재무 지표" section="financial" :ticker="report.stock.ticker" :items="report.score.financial_indicators" />
 
@@ -320,6 +348,8 @@
 <script setup>
 import { computed, defineComponent, h, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
+import { Star } from "@lucide/vue";
+import { useAuthStore } from "../../stores/auth";
 
 import { api } from "../api/client";
 
@@ -330,10 +360,11 @@ const props = defineProps({
   },
 });
 
+const authStore = useAuthStore();
 const report = ref(null);
 const loading = ref(true);
 const error = ref("");
-const captureHint = ref(false);
+const isWatchlisted = ref(false);
 const aiComment = ref(null);
 const aiLoading = ref(false);
 const aiError = ref("");
@@ -695,10 +726,32 @@ const IndicatorSection = defineComponent({
   },
 });
 
+async function toggleWatchlist() {
+  try {
+    if (isWatchlisted.value) {
+      await api.delete(`/watchlist/${props.ticker}/`);
+      isWatchlisted.value = false;
+    } else {
+      await api.post(`/watchlist/${props.ticker}/`);
+      isWatchlisted.value = true;
+    }
+  } catch (err) {
+    console.error("관심종목 토글 실패", err);
+  }
+}
+
 onMounted(async () => {
   try {
-    const response = await api.get(`/stocks/${props.ticker}/report/`);
-    report.value = response.data;
+    const [reportResponse, watchlistResponse] = await Promise.all([
+      api.get(`/stocks/${props.ticker}/report/`),
+      authStore.isAuthenticated ? api.get("/watchlist/") : Promise.resolve({ data: { results: [] } }),
+    ]);
+    report.value = reportResponse.data;
+
+    if (authStore.isAuthenticated && watchlistResponse.data) {
+      const items = watchlistResponse.data.results || watchlistResponse.data;
+      isWatchlisted.value = Array.isArray(items) && items.some((item) => item.ticker === props.ticker);
+    }
   } catch (err) {
     error.value = "종목 리포트를 불러오지 못했습니다.";
   } finally {
