@@ -62,14 +62,19 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthorOrReadOnly]
 
     def get_queryset(self):
-        return (
+        queryset = (
             Post.objects.select_related("author")
+            .select_related("stock")
             .prefetch_related(
                 "likes",
                 Prefetch("comments", queryset=Comment.objects.select_related("author").order_by("created_at")),
             )
             .order_by("-created_at")
         )
+        ticker = self.request.query_params.get("ticker")
+        if ticker:
+            queryset = queryset.filter(stock_id=ticker)
+        return queryset
 
     def get_permissions(self):
         if self.action in {"update", "partial_update", "destroy"}:

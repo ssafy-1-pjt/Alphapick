@@ -30,6 +30,13 @@ class UserFollow(models.Model):
 
 
 class Post(models.Model):
+    stock = models.ForeignKey(
+        "stocks.Stock",
+        on_delete=models.CASCADE,
+        related_name="discussion_posts",
+        null=True,
+        blank=True,
+    )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

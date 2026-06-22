@@ -21,7 +21,16 @@
           </div>
           <p class="mt-2 text-sm font-bold text-slate-500">데이터 기준일 {{ report.score.base_date }}</p>
         </div>
-        <button class="btn-primary" type="button" @click="captureHint = true">캡처</button>
+        <div class="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
+          <RouterLink
+            :to="{ name: 'stock-community', params: { ticker: report.stock.ticker } }"
+            class="inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-lg bg-emerald-600 px-6 text-lg font-black text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 md:flex-none"
+          >
+            <MessageCircle :size="24" />
+            토론방
+          </RouterLink>
+          <button class="btn-secondary" type="button" @click="captureHint = true">캡처</button>
+        </div>
       </div>
 
       <p v-if="captureHint" class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
@@ -320,6 +329,7 @@
 <script setup>
 import { computed, defineComponent, h, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
+import { MessageCircle } from "@lucide/vue";
 
 import { api } from "../api/client";
 

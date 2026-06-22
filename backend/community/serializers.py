@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import Comment, Post, PostLike, UserFollow
+from stocks.models import Stock
 
 
 User = get_user_model()
@@ -77,6 +78,13 @@ class CommentCreateSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
+    stock = serializers.PrimaryKeyRelatedField(
+        queryset=Stock.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
+    stock_name = serializers.CharField(source="stock.name", read_only=True)
+    stock_sector = serializers.CharField(source="stock.sector", read_only=True)
     author = CommunityUserSerializer(read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     likes_count = serializers.SerializerMethodField()
@@ -88,6 +96,9 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = (
             "id",
+            "stock",
+            "stock_name",
+            "stock_sector",
             "author",
             "title",
             "content",
@@ -100,6 +111,11 @@ class PostSerializer(serializers.ModelSerializer):
             "comments",
         )
         read_only_fields = ("id", "author", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        if self.instance is None and not attrs.get("stock"):
+            raise serializers.ValidationError({"stock": "종목 토론방 게시글에는 종목이 필요합니다."})
+        return attrs
 
     def validate_title(self, value):
         cleaned = value.strip()
