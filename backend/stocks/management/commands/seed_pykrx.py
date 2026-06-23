@@ -586,7 +586,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--market", default="KOSPI", choices=["KOSPI", "KOSDAQ"])
-        parser.add_argument("--days", type=int, default=365)
+        parser.add_argument("--days", type=int, default=1095)
         parser.add_argument("--end")
         parser.add_argument("--limit", type=int)
         parser.add_argument("--sleep", type=float, default=0.25)

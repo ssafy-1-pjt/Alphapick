@@ -122,6 +122,36 @@ textarea {
   transform: none;
 }
 
+@media (max-width: 1023px) {
+  .mobile-nav .nav-mobile-hidden {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-nav {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .mobile-nav .side-nav-link {
+    min-height: 42px;
+    width: 42px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  .mobile-nav .side-nav-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
 @media (min-width: 1024px) {
   .side-nav-link {
     color: rgba(255, 255, 255, 0.88);

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>브이엠 · AlphaPick 리포트 (리디자인)</title>
+<style>
+  :root{
+    --navy:#0B2454;
+    --navy-2:#102F6B;
+    --teal:#12B8A6;
+    --teal-dark:#0D8F82;
+    --teal-pale:#E3F8F5;
+    --amber:#F59E0B;
+    --amber-pale:#FEF3E0;
+    --rose:#F43F5E;
+    --rose-pale:#FEE9EC;
+    --sky:#0EA5E9;
+    --sky-pale:#E5F4FC;
+    --up:#E0383F;
+    --down:#2563EB;
+    --bg:#F3F5F9;
+    --card:#FFFFFF;
+    --line:#E7EAF0;
+    --ink:#101626;
+    --sub:#677084;
+    --faint:#9AA3B5;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,22,38,.04), 0 8px 24px -12px rgba(16,22,38,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  .num{ font-variant-numeric: tabular-nums; font-feature-settings:"tnum"; }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:2px; border-radius:6px;}
+
+  .app{display:flex; min-height:100vh;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:212px; flex:none; background:var(--navy); color:#cfd9ef;
+    padding:22px 16px; position:sticky; top:0; height:100vh;
+  }
+  .brand{display:flex; align-items:center; gap:9px; padding:4px 6px 22px; color:#fff; font-weight:800; font-size:17px;}
+  .brand-mark{width:26px;height:26px;border-radius:8px;background:var(--teal); display:flex;align-items:center;justify-content:center; font-size:13px; color:#06302c; font-weight:900;}
+  .navlist{display:flex; flex-direction:column; gap:2px; margin-top:6px;}
+  .navlist a{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; color:#9fb0d6; font-size:13.5px; font-weight:600;}
+  .navlist a.active{background:rgba(255,255,255,.08); color:#fff;}
+  .navlist a:hover{color:#fff;}
+  .navlist .dot{width:7px;height:7px;border-radius:50%; background:currentColor; opacity:.55; flex:none;}
+  .sidebar-foot{margin-top:auto; padding-top:18px; font-size:12px; color:#7488B3;}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1; min-width:0;}
+  .topbar{
+    position:sticky; top:0; z-index:30; background:#fff; border-bottom:1px solid var(--line);
+    padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:18px;
+  }
+  .ticker-row{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .ticker-row h1{font-size:19px; margin:0; font-weight:800;}
+  .code{color:var(--faint); font-size:12.5px; font-weight:600;}
+  .tag{font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .tag.strong{background:var(--rose-pale); color:#B91C3C;}
+  .tag.sector{background:var(--teal-pale); color:var(--teal-dark);}
+  .tag.sub{background:#F1F3F7; color:var(--sub);}
+  .price-row{display:flex; align-items:baseline; gap:10px; margin-top:3px;}
+  .price{font-size:24px; font-weight:800;}
+  .price-delta{font-size:13px; font-weight:700; color:var(--down);}
+  .price-meta{font-size:12px; color:var(--faint);}
+  .topbar-actions{display:flex; gap:8px; flex:none;}
+  .btn{border:1px solid var(--line); background:#fff; padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .btn:hover{border-color:#CBD3E1;}
+  .btn.icon{padding:8px 10px;}
+  .btn.primary{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .btn.primary:hover{background:var(--teal-dark); border-color:var(--teal-dark);}
+  .btn.ghost{background:#fff;}
+
+  .content{padding:22px 28px 60px; max-width:1180px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
+  .eyebrow{font-size:11.5px; font-weight:800; letter-spacing:.04em; color:var(--teal-dark); text-transform:uppercase;}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:22px 24px; display:grid; grid-template-columns:230px 1fr; gap:26px; margin-bottom:16px;}
+  .hero-gauge-col{display:flex; flex-direction:column; align-items:center; text-align:center; border-right:1px solid var(--line); padding-right:24px;}
+  .gauge-wrap{position:relative; width:148px; height:148px;}
+  .gauge-num{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .gauge-num b{font-size:32px; font-weight:800; line-height:1;}
+  .gauge-num span{font-size:11px; color:var(--faint); font-weight:700; margin-top:2px;}
+  .verdict-badge{margin-top:10px; background:var(--teal-pale); color:var(--teal-dark); font-weight:800; font-size:13px; padding:5px 12px; border-radius:999px;}
+  .verdict-sub{margin-top:6px; font-size:12px; color:var(--sub);}
+  .discount-note{margin-top:10px; font-size:11px; color:var(--faint); line-height:1.45;}
+
+  .hero-right h2{margin:0 0 12px; font-size:17px; font-weight:800;}
+  .hero-cols{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .bullets{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px;}
+  .bullets li{display:flex; gap:8px; font-size:13px; color:#374159;}
+  .bullets .bdot{width:6px;height:6px;border-radius:50%; margin-top:6px; flex:none;}
+  .bullets.good .bdot{background:var(--teal);}
+  .bullets.warn .bdot{background:var(--amber);}
+  .col-label{font-size:11.5px; font-weight:800; color:var(--sub); margin-bottom:8px; display:block;}
+  .hero-cta{display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;}
+
+  /* ---------- LAYER SCORES ---------- */
+  .section-label{font-size:13px; font-weight:800; color:var(--ink); margin:0 0 4px;}
+  .section-sub{font-size:12px; color:var(--faint); margin:0 0 12px;}
+  .layers{margin-bottom:18px;}
+  .layers-link{position:relative; padding-left:6px;}
+  .layer-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .layer-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; cursor:pointer; transition:border-color .15s;}
+  .layer-card:hover{border-color:#CBD3E1;}
+  .layer-top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .layer-name{font-size:13.5px; font-weight:800;}
+  .layer-score{font-size:22px; font-weight:800;}
+  .layer-score.amber{color:var(--amber);}
+  .layer-score.teal{color:var(--teal-dark);}
+  .layer-score.rose{color:var(--rose);}
+  .layer-desc{font-size:12px; color:var(--sub); margin:6px 0 10px; line-height:1.5;}
+  .meter{height:6px; border-radius:999px; background:#EEF1F6; overflow:hidden;}
+  .meter > i{display:block; height:100%; border-radius:999px;}
+  .meter.amber > i{background:var(--amber);}
+  .meter.teal > i{background:var(--teal);}
+  .meter.rose > i{background:var(--rose);}
+  .layer-expand{margin-top:6px; font-size:11.5px; color:var(--faint); font-weight:700; display:flex; align-items:center; gap:4px;}
+  .layer-sub{display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:7px;}
+  .layer-card.open .layer-sub{display:flex;}
+  .layer-card.open .chev{transform:rotate(180deg);}
+  .chev{transition:transform .15s; font-size:9px;}
+  .subrow{display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#374159;}
+  .subrow b{font-weight:700;}
+  .sum-note{text-align:center; font-size:11.5px; color:var(--faint); margin-top:10px;}
+  .sum-note b{color:var(--ink);}
+
+  /* ---------- CHART ---------- */
+  .chart-card{padding:20px 24px; margin-bottom:18px;}
+  .chart-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .chart-head h3{margin:0; font-size:15px; font-weight:800;}
+  .ema-pills{display:flex; gap:6px;}
+  .ema-pill{font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:999px; border:1px solid var(--line); color:var(--sub); display:flex; align-items:center; gap:5px;}
+  .ema-pill .sw{width:9px;height:9px;border-radius:50%;}
+  .ema-pill.active{background:#F6F8FB; color:var(--ink); border-color:#CBD3E1;}
+  .chart-svg{width:100%; height:190px; display:block;}
+  .chart-svg path.series{opacity:1; transition:opacity .15s;}
+  .chart-svg path.series.off{opacity:0;}
+  .chart-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; border-top:1px solid var(--line); padding-top:14px;}
+  .cstat b{display:block; font-size:14.5px; font-weight:800;}
+  .cstat span{font-size:11.5px; color:var(--faint);}
+
+  /* ---------- TABS ---------- */
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+  .tab-btn{padding:10px 4px; margin-right:18px; font-size:13.5px; font-weight:700; color:var(--faint); border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none;}
+  .tab-btn.active{color:var(--ink); border-bottom-color:var(--teal);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* matrix */
+  .ov-grid{display:grid; grid-template-columns:300px 1fr; gap:16px; margin-bottom:16px;}
+  .matrix-card{padding:18px;}
+  .matrix-card h4{margin:0 0 2px; font-size:13px; font-weight:800;}
+  .matrix-card p{margin:0 0 12px; font-size:11.5px; color:var(--faint);}
+  .matrix{position:relative; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .matrix-grid{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; height:170px;}
+  .mcell{display:flex; align-items:center; justify-content:center; text-align:center; font-size:11.5px; font-weight:700; padding:8px; position:relative;}
+  .mcell.q1{background:var(--amber-pale); color:#92590B;}
+  .mcell.q2{background:var(--teal-pale); color:var(--teal-dark);}
+  .mcell.q3{background:var(--rose-pale); color:#B91C3C;}
+  .mcell.q4{background:var(--sky-pale); color:#0369A1;}
+  .pos-dot{position:absolute; width:13px;height:13px; border-radius:50%; background:#fff; border:3px solid var(--teal-dark); box-shadow:0 0 0 3px rgba(13,143,130,.18);}
+  .axis-x, .axis-y{font-size:10.5px; color:var(--faint); font-weight:700;}
+  .axis-x{display:flex; justify-content:space-between; margin-top:6px;}
+  .matrix-foot{margin-top:10px; font-size:12px; color:var(--sub);}
+  .matrix-foot b{color:var(--ink);}
+
+  .val-card{padding:18px;}
+  .val-card h4{margin:0 0 12px; font-size:13px; font-weight:800;}
+  .val-list{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;}
+  .val-item{display:flex; flex-direction:column; gap:3px;}
+  .val-item span{font-size:11.5px; color:var(--faint);}
+  .val-item b{font-size:14.5px; font-weight:800;}
+  .val-item b.muted{color:var(--faint); font-weight:700; font-size:13px;}
+
+  .ai-card{padding:18px; margin-bottom:4px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;}
+  .ai-card h4{margin:0 0 6px; font-size:13px; font-weight:800;}
+  .ai-card p{margin:0; font-size:12.5px; color:var(--sub); max-width:560px;}
+
+  /* stat grids: tech / financial */
+  .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .stat-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .stat-card .sname{font-size:12.5px; font-weight:700; color:#374159;}
+  .stat-card .sdesc{font-size:11.5px; color:var(--faint); margin:4px 0 10px; line-height:1.45;}
+  .stat-card .sval-row{display:flex; align-items:baseline; justify-content:space-between;}
+  .stat-card .sval{font-size:19px; font-weight:800;}
+  .pill{font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px;}
+  .pill.good{background:var(--teal-pale); color:var(--teal-dark);}
+  .pill.warn{background:var(--amber-pale); color:#92590B;}
+  .pill.bad{background:var(--rose-pale); color:#B91C3C;}
+  .pill.neutral{background:#F1F3F7; color:var(--sub);}
+
+  .fin-note{background:#F6F8FB; border:1px dashed var(--line); border-radius:12px; padding:13px 16px; font-size:12px; color:var(--sub); margin-top:14px;}
+  .fin-note b{color:var(--ink);}
+
+  /* news */
+  .news-summary{display:flex; align-items:center; gap:18px; margin-bottom:16px;}
+  .news-bar{flex:1; height:10px; border-radius:999px; overflow:hidden; display:flex; background:#EEF1F6;}
+  .news-bar i{display:block; height:100%;}
+  .news-legend{display:flex; gap:14px; font-size:12px; color:var(--sub); flex:none;}
+  .news-legend .lg{display:flex; align-items:center; gap:5px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+  .news-row{display:flex; gap:14px; padding:13px 0; border-top:1px solid var(--line); align-items:flex-start;}
+  .news-row:first-of-type{border-top:none;}
+  .news-kind{font-size:11px; font-weight:800; padding:2px 8px; border-radius:6px; background:#F1F3F7; color:var(--sub); flex:none; margin-top:2px;}
+  .news-body{flex:1;}
+  .news-title{font-size:13px; font-weight:700;}
+  .news-desc{font-size:12px; color:var(--faint); margin-top:3px;}
+  .news-date{font-size:11.5px; color:var(--faint); flex:none;}
+
+  @media (max-width:900px){
+    .sidebar{display:none;}
+    .hero{grid-template-columns:1fr;}
+    .hero-gauge-col{border-right:none; border-bottom:1px solid var(--line); padding-right:0; padding-bottom:18px;}
+    .hero-cols{grid-template-columns:1fr;}
+    .layer-grid{grid-template-columns:1fr;}
+    .ov-grid{grid-template-columns:1fr;}
+    .stat-grid{grid-template-columns:1fr 1fr;}
+    .chart-stats{grid-template-columns:1fr 1fr;}
+    .content{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">A</span> AlphaPick</div>
+    <nav class="navlist">
+      <a class="active"><span class="dot"></span>오늘의 포트폴리오</a>
+      <a><span class="dot"></span>종목 검색</a>
+      <a><span class="dot"></span>관심 종목</a>
+      <a><span class="dot"></span>커뮤니티</a>
+      <a><span class="dot"></span>알림</a>
+      <a><span class="dot"></span>설정</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="ticker-row">
+          <h1>브이엠</h1>
+          <span class="code">089970.KQ</span>
+          <span class="tag strong">강한 주도주</span>
+          <span class="tag sector">반도체</span>
+          <span class="tag sub">반도체장비·소재</span>
+        </div>
+        <div class="price-row">
+          <span class="price num">94,600원</span>
+          <span class="price-delta num">▼ 8,200 (-8.0%)</span>
+          <span class="price-meta">6월 23일 12:07 기준</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn icon" title="관심종목 추가">☆</button>
+        <button class="btn ghost">토론방</button>
+        <button class="btn ghost">캡처</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- HERO -->
+      <section class="hero card">
+        <div class="hero-gauge-col">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 148 148" width="148" height="148">
+              <circle cx="74" cy="74" r="60" fill="none" stroke="#EEF1F6" stroke-width="12"/>
+              <circle cx="74" cy="74" r="60" fill="none" stroke="#12B8A6" stroke-width="12"
+                stroke-linecap="round" transform="rotate(-90 74 74)"
+                stroke-dasharray="302 377" />
+            </svg>
+            <div class="gauge-num">
+              <b class="num">80.1</b>
+              <span>/ 100점</span>
+            </div>
+          </div>
+          <div class="verdict-badge">추천 후보</div>
+          <div class="verdict-sub">강한 주도주 · 컨센서스 없음</div>
+          <div class="discount-note">리스크 제어 −6% · 시장 방향성 −3% 할인 반영</div>
+        </div>
+
+        <div class="hero-right">
+          <h2>브이엠 종합 리포트</h2>
+          <div class="hero-cols">
+            <div>
+              <span class="col-label">핵심 근거</span>
+              <ul class="bullets good">
+                <li><span class="bdot"></span>RS 97 · 52주 신고가 근접 · 3개월 모멘텀 110.7%</li>
+                <li><span class="bdot"></span>가격 흐름은 정배열 추세로 분류됩니다</li>
+                <li><span class="bdot"></span>거래량은 평균권 거래량 상태입니다</li>
+              </ul>
+            </div>
+            <div>
+              <span class="col-label">주의 요인</span>
+              <ul class="bullets warn">
+                <li><span class="bdot"></span>리스크 제어 점수가 35.2점으로 낮습니다</li>
+                <li><span class="bdot"></span>목표가·PER·ROE는 컨센서스 데이터가 없어 미산정 상태입니다</li>
+              </ul>
+            </div>
+          </div>
+          <div class="hero-cta">
+            <button class="btn primary">관심종목에 추가</button>
+            <button class="btn ghost">포트폴리오 후보에 담기</button>
+            <button class="btn ghost">AI 분석 전체보기</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- LAYER SCORES (single source of truth — replaces the old duplicate score rows) -->
+      <section class="layers">
+        <p class="section-label">종합 80.1점의 구성</p>
+        <p class="section-sub">아래 3개 레이어 점수를 가중합산해 종합 점수를 산출합니다 · 카드를 누르면 세부 신호를 볼 수 있어요</p>
+        <div class="layer-grid">
+
+          <div class="layer-card" onclick="this.classList.toggle('open')">
+            <div class="layer-top">
+              <span class="layer-name">가치 / 퀄리티</span>
+              <span class="layer-score amber num">62.5</span>
+            </div>
+            <p class="layer-desc">유동성, 변동성 안정성, 52주 고점 거리로 가격 기반 퀄리티를 평가합니다.</p>
+            <div class="meter amber"><i style="width:62.5%"></i></div>
+            <div class="layer-expand"><span class="chev">▾</span> 세부 신호 보기</div>
+            <div class="layer-sub">
+              <div class="subrow"><span>연간 ROE 대비</span><b class="num">100점</b></div>
+              <div class="subrow"><span>EPS 가속도</span><b class="num">76점</b></div>
+            </div>
+          </div>
+
+          <div class="layer-card open" onclick="this.classList.toggle('open')">
+            <div class="layer-top">
+              <span class="layer-name">주도주 모멘텀</span>
+              <span class="layer-score teal num">97.8</span>
+            </div>
+            <p class="layer-desc">상대강도, 6개월 수익률, 52주 고점 근접도로 주도주 여부를 판단합니다.</p>
+            <div class="meter teal"><i style="width:97.8%"></i></div>
+            <div class="layer-expand"><span class="chev">▾</span> 세부 신호 보기</div>
+            <div class="layer-sub">
+              <div class="subrow"><span>신고가 / 저점비</span><b class="num">100점</b></div>
+              <div class="subrow"><span>수급 / 거래량</span><b class="num">70.4점</b></div>
+            </div>
+          </div>
+
+          <div class="layer-card" onclick="this.classList.toggle('open')">
+            <div class="layer-top">
+              <span class="layer-name">리스크 제어</span>
+              <span class="layer-score rose num">35.2</span>
+            </div>
+            <p class="layer-desc">시장 방향, 단기 과열, 낙폭 위험으로 추격 매수 리스크를 제어합니다.</p>
+            <div class="meter rose"><i style="width:35.2%"></i></div>
+            <div class="layer-expand"><span class="chev">▾</span> 세부 신호 보기</div>
+            <div class="layer-sub">
+              <div class="subrow"><span>시장 방향</span><b class="num">20.8점</b></div>
+              <div class="subrow"><span>과열 방지</span><b class="num">82점</b></div>
+              <div class="subrow"><span>낙폭 방지</span><b class="num">7.7점</b></div>
+            </div>
+          </div>
+
+        </div>
+        <p class="sum-note">가치/퀄리티 · 주도주 모멘텀 · 리스크 제어를 가중합산 → <b>종합 80.1점</b></p>
+      </section>
+
+      <!-- CHART -->
+      <section class="chart-card card">
+        <div class="chart-head">
+          <h3>브이엠 가격 차트</h3>
+          <div class="ema-pills">
+            <span class="ema-pill active" onclick="toggleSeries(this,'s-close')"><span class="sw" style="background:#101626"></span>Close</span>
+            <span class="ema-pill active" onclick="toggleSeries(this,'s-ema20')"><span class="sw" style="background:#12B8A6"></span>EMA20</span>
+            <span class="ema-pill active" onclick="toggleSeries(this,'s-ema50')"><span class="sw" style="background:#F59E0B"></span>EMA50</span>
+            <span class="ema-pill active" onclick="toggleSeries(this,'s-ema200')"><span class="sw" style="background:#6366F1"></span>EMA200</span>
+          </div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 600 190" preserveAspectRatio="none">
+          <line x1="0" y1="47" x2="600" y2="47" stroke="#F1F3F7" stroke-width="1"/>
+          <line x1="0" y1="95" x2="600" y2="95" stroke="#F1F3F7" stroke-width="1"/>
+          <line x1="0" y1="143" x2="600" y2="143" stroke="#F1F3F7" stroke-width="1"/>
+          <path id="s-ema200" class="series" d="M0,168 C100,166 200,158 300,142 C400,124 480,96 600,70" fill="none" stroke="#6366F1" stroke-width="1.6" stroke-dasharray="5 4"/>
+          <path id="s-ema50" class="series" d="M0,160 C100,158 200,150 300,130 C400,108 480,76 600,52" fill="none" stroke="#F59E0B" stroke-width="1.8"/>
+          <path id="s-ema20" class="series" d="M0,155 C100,150 200,140 300,116 C400,88 480,55 600,42" fill="none" stroke="#12B8A6" stroke-width="1.8"/>
+          <path id="s-close" class="series" d="M0,150 20,158 40,152 60,162 80,150 100,148 120,153 140,140 160,142 180,128 200,120 220,124 240,108 260,100 280,86 300,80 320,62 340,48 350,38 360,46 370,34 380,42" fill="none" stroke="#101626" stroke-width="2"/>
+        </svg>
+        <div class="chart-stats">
+          <div class="cstat"><b class="num">94,600원</b><span>최근 종가 · 기간 +703.7%</span></div>
+          <div class="cstat"><b>정배열 추세</b><span>EMA20 &gt; EMA50 &gt; EMA200</span></div>
+          <div class="cstat"><b class="num">654억</b><span>평균 거래대금 · 보통권</span></div>
+          <div class="cstat"><b class="num">상단 77%</b><span>볼린저밴드 위치 · 밴드 내</span></div>
+        </div>
+      </section>
+
+      <!-- TABS -->
+      <nav class="tabs">
+        <button class="tab-btn active" onclick="showTab(this,'overview')">종합 진단</button>
+        <button class="tab-btn" onclick="showTab(this,'tech')">기술 지표</button>
+        <button class="tab-btn" onclick="showTab(this,'fin')">재무 지표</button>
+        <button class="tab-btn" onclick="showTab(this,'news')">뉴스 · 공시</button>
+      </nav>
+
+      <div class="panel active" id="panel-overview">
+        <div class="ov-grid">
+          <div class="matrix-card card">
+            <h4>회사 가치 × 진입 타이밍</h4>
+            <p>70점 기준 분류 · 현재 위치 표시</p>
+            <div class="matrix">
+              <div class="matrix-grid">
+                <div class="mcell q1">타이밍 우선<br>회사 가치 필요</div>
+                <div class="mcell q2">포트폴리오 후보
+                  <div class="pos-dot" style="top:38%; left:62%;"></div>
+                </div>
+                <div class="mcell q3">보수적 관찰</div>
+                <div class="mcell q4">좋은 회사<br>타이밍 대기</div>
+              </div>
+            </div>
+            <div class="axis-x"><span>회사 가치 낮음</span><span>회사 가치 높음</span></div>
+            <p class="matrix-foot">현재 위치 · <b>포트폴리오 후보</b> — 회사 가치 85점 · 타이밍 90.2점</p>
+          </div>
+
+          <div class="val-card card">
+            <h4>밸류에이션 요약</h4>
+            <div class="val-list">
+              <div class="val-item"><span>현재가</span><b class="num">94,600원</b></div>
+              <div class="val-item"><span>목표가</span><b class="muted">미산정</b></div>
+              <div class="val-item"><span>목표가 상승여력</span><b class="muted">미산정</b></div>
+              <div class="val-item"><span>PER</span><b class="muted">자료 없음</b></div>
+              <div class="val-item"><span>ROE</span><b class="muted">자료 없음</b></div>
+              <div class="val-item"><span>데이터 신뢰도</span><b class="num" style="color:var(--teal-dark)">97.2점</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-card card">
+          <div>
+            <h4>AI 3줄 코멘트</h4>
+            <p>기업 점수, 타이밍 점수, 리스크 합산 요인을 바탕으로 긍정 요인, 주의 요인, 종합 의견을 한 번에 요약합니다.</p>
+          </div>
+          <button class="btn primary" style="flex:none;">AI 분석 보기</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-tech">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="sname">추세 평점</div>
+            <div class="sdesc">52주 가격 추세의 지속성과 방향성을 종합한 원시 신호입니다.</div>
+            <div class="sval-row"><span class="sval num">69.7</span><span class="pill warn">보통</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">RSI(14)</div>
+            <div class="sdesc">최근 상승폭과 하락폭을 비교한 과열 / 침체 지표입니다.</div>
+            <div class="sval-row"><span class="sval num">74.1</span><span class="pill warn">중립</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">Z-Score</div>
+            <div class="sdesc">현재가가 최근 20일 평균에서 표준편차 기준으로 얼마나 떨어져 있는지 봅니다.</div>
+            <div class="sval-row"><span class="sval num">1.73</span><span class="pill good">정상</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">최대낙폭(MDD)</div>
+            <div class="sdesc">최근 1년 고점 대비 가장 크게 빠진 비율입니다.</div>
+            <div class="sval-row"><span class="sval num">-22.5%</span><span class="pill good">정상</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">거래량 비율</div>
+            <div class="sdesc">오늘 거래량을 최근 20일 평균 거래량과 비교한 값입니다.</div>
+            <div class="sval-row"><span class="sval num">0.89x</span><span class="pill neutral">보통</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">52주 고점 거리</div>
+            <div class="sdesc">현재가가 최근 52주 고점에서 얼마나 떨어져 있는지 나타냅니다.</div>
+            <div class="sval-row"><span class="sval num">1.2%</span><span class="pill good">근접</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-fin">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="sname">유동성</div>
+            <div class="sdesc">최근 20일 평균 거래대금입니다.</div>
+            <div class="sval-row"><span class="sval num">654억</span><span class="pill good">양호</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">데이터 신뢰도</div>
+            <div class="sdesc">가격, 이력 길이, 유동성, 결측 여부를 합산한 내부 신뢰도 점수입니다.</div>
+            <div class="sval-row"><span class="sval num">97.2</span><span class="pill good">양호</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="sname">목표가 상승여력</div>
+            <div class="sdesc">목표가와 현재가의 차이를 비율로 계산한 값입니다.</div>
+            <div class="sval-row"><span class="sval muted">미산정</span><span class="pill neutral">컨센서스 없음</span></div>
+          </div>
+        </div>
+        <div class="fin-note"><b>PER · PBR · ROE · 영업이익률 · 목표가</b> — 증권사 컨센서스 데이터가 없어 산출되지 않았습니다.</div>
+      </div>
+
+      <div class="panel" id="panel-news">
+        <div class="news-summary">
+          <div class="news-bar">
+            <i style="width:0%; background:var(--teal)"></i>
+            <i style="width:100%; background:#D7DCE6"></i>
+            <i style="width:0%; background:var(--rose)"></i>
+          </div>
+          <div class="news-legend">
+            <span class="lg"><span class="legend-dot" style="background:var(--teal)"></span>긍정 0건</span>
+            <span class="lg"><span class="legend-dot" style="background:#D7DCE6"></span>중립 2건</span>
+            <span class="lg"><span class="legend-dot" style="background:var(--rose)"></span>부정 0건</span>
+          </div>
+          <span class="pill neutral" style="flex:none;">종합 감성 · 중립 우위</span>
+        </div>
+
+        <div class="card" style="padding:6px 18px;">
+          <div class="news-row">
+            <span class="news-kind">뉴스</span>
+            <div class="news-body">
+              <div class="news-title">pykrx 실전 모드에서는 뉴스 감성 점수를 별도 수집하지 않습니다</div>
+              <div class="news-desc">데이터 출처·산출 기준을 설명하는 항목이라 중립으로 분류했습니다.</div>
+            </div>
+            <span class="news-date">2026-06-22</span>
+          </div>
+          <div class="news-row">
+            <span class="news-kind">공시</span>
+            <div class="news-body">
+              <div class="news-title">pykrx 일봉 가격 데이터 기준 산출</div>
+              <div class="news-desc">데이터 출처·산출 기준을 설명하는 항목이라 중립으로 분류했습니다.</div>
+            </div>
+            <span class="news-date">2026-06-22</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function showTab(btn, name){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+name).classList.add('active');
+  }
+  function toggleSeries(pill, id){
+    pill.classList.toggle('active');
+    document.getElementById(id).classList.toggle('off');
+  }
+</script>
+</body>
+</html>

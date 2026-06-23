@@ -113,7 +113,22 @@ const items = computed(() => {
   if (props.section === "total") return [totalScoreItem(report.value)];
   if (props.section === "score") return report.value.score.score_cards || [];
   if (props.section === "technical") return report.value.score.technical_indicators || [];
-  if (props.section === "financial") return report.value.score.financial_indicators || [];
+  if (props.section === "financial") {
+    const indicators = report.value.score.financial_indicators || [];
+    const current = report.value.priceSeries?.at(-1)?.close_price || report.value.financialMetric?.current_price || 0;
+    const target = report.value.financialMetric?.target_price;
+    return indicators.map((item) => {
+      if (item.label === "목표가 상승여력" && current && target) {
+        const upside = ((target - current) / current) * 100;
+        return {
+          ...item,
+          value: `${upside > 0 ? "+" : ""}${upside.toFixed(1)}%`,
+          status: upside > 0 ? "상승여력" : "주의"
+        };
+      }
+      return item;
+    });
+  }
   return [];
 });
 

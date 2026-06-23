@@ -12,7 +12,7 @@
         AlphaPick
       </RouterLink>
 
-      <nav class="flex items-center gap-1 overflow-x-auto lg:mt-7 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-2 lg:overflow-visible">
+      <nav class="mobile-nav flex items-center gap-1 overflow-x-auto lg:mt-7 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-2 lg:overflow-visible">
         <template v-for="item in primaryNav" :key="item.label">
           <RouterLink class="side-nav-link" exact-active-class="side-nav-link-active" :to="item.to">
             <component :is="item.icon" :size="19" />
