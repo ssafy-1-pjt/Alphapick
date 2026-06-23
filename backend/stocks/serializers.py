@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import AICommentCache, FinancialMetric, PortfolioItem, PortfolioRun, PriceDaily, ScoreSnapshot, Stock, Theme, ThemeGroup
+from .models import AICommentCache, FinancialMetric, PortfolioItem, PortfolioRun, PriceDaily, ScoreSnapshot, Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
 from .services import PORTFOLIO_THRESHOLD, watch_candidates
 
 
@@ -116,6 +116,30 @@ class StockSummarySerializer(serializers.ModelSerializer):
     def get_fail_safe_flag(self, obj):
         score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
         return score.fail_safe_flag if score else False
+
+
+class WatchlistFolderSerializer(serializers.ModelSerializer):
+    item_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = WatchlistFolder
+        fields = ("id", "name", "item_count", "created_at")
+        read_only_fields = ("id", "item_count", "created_at")
+
+    def validate_name(self, value):
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("폴더 이름을 입력해 주세요.")
+        return cleaned
+
+
+class WatchlistEntrySerializer(serializers.ModelSerializer):
+    stock = StockSummarySerializer(read_only=True)
+    folder = WatchlistFolderSerializer(read_only=True)
+
+    class Meta:
+        model = Watchlist
+        fields = ("id", "stock", "folder", "created_at")
 
 
 class ThemeSerializer(serializers.ModelSerializer):

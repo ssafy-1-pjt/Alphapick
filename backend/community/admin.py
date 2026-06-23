@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Comment, Post, PostLike, UserFollow
+from .models import Comment, CommunityNotification, Post, PostLike, UserFollow
 
 
 @admin.register(Post)
@@ -24,3 +24,10 @@ class PostLikeAdmin(admin.ModelAdmin):
 @admin.register(UserFollow)
 class UserFollowAdmin(admin.ModelAdmin):
     list_display = ("id", "follower", "following", "created_at")
+
+
+@admin.register(CommunityNotification)
+class CommunityNotificationAdmin(admin.ModelAdmin):
+    list_display = ("id", "recipient", "actor", "kind", "post", "is_read", "created_at")
+    list_filter = ("kind", "is_read", "created_at")
+    search_fields = ("recipient__username", "actor__username", "post__title")

@@ -9,6 +9,7 @@ class User(AbstractUser):
         STABLE = "stable", "Stable"
 
     nickname = models.CharField(max_length=40, blank=True)
+    profile_image = models.ImageField(upload_to="profiles/", blank=True, null=True)
     risk_type = models.CharField(
         max_length=20,
         choices=RiskType.choices,
@@ -18,3 +19,12 @@ class User(AbstractUser):
 
     def display_name(self):
         return self.nickname or self.username
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("nickname",),
+                condition=~models.Q(nickname=""),
+                name="unique_nonempty_nickname",
+            ),
+        ]

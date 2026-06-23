@@ -106,7 +106,7 @@ textarea {
 }
 
 .side-nav-link:hover,
-.side-nav-link.router-link-active {
+.side-nav-link.side-nav-link-active {
   background: #128ba6;
   color: #fff;
 }
@@ -128,7 +128,7 @@ textarea {
   }
 
   .side-nav-link:hover,
-  .side-nav-link.router-link-active {
+  .side-nav-link.side-nav-link-active {
     background: linear-gradient(135deg, #009e8e, #128ba6);
     box-shadow: 0 12px 24px rgba(0, 158, 142, 0.22);
     transform: translateY(-1px);

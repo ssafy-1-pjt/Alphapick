@@ -37,13 +37,18 @@
             <MessageCircle :size="24" />
             토론방
           </RouterLink>
-          <button class="btn-secondary" type="button" @click="captureHint = true">캡처</button>
+          <button
+            class="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-lg border px-5 text-base font-extrabold transition md:flex-none"
+            :class="watchlistSaved ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'"
+            type="button"
+            :disabled="watchlistLoading"
+            @click="toggleWatchlist"
+          >
+            <Heart :size="20" :fill="watchlistSaved ? 'currentColor' : 'none'" />
+            {{ watchlistSaved ? "관심 종목 저장됨" : "관심 종목 저장" }}
+          </button>
         </div>
       </div>
-
-      <p v-if="captureHint" class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
-        브라우저 캡처 기능으로 현재 리포트를 저장할 수 있습니다.
-      </p>
 
       <section class="rounded-lg border border-slate-800 bg-slate-300 p-7 text-center text-slate-950">
         <h2 class="text-4xl font-extrabold leading-tight md:text-5xl">{{ report.score.headline }}</h2>
@@ -370,10 +375,12 @@
 
 <script setup>
 import { computed, defineComponent, h, onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
-import { MessageCircle } from "@lucide/vue";
+import { RouterLink, useRouter } from "vue-router";
+import { Heart, MessageCircle } from "@lucide/vue";
 
 import { api } from "../api/client";
+import { unwrapList } from "../api/client";
+import { useAuthStore } from "../stores/auth";
 
 const props = defineProps({
   ticker: {
@@ -382,10 +389,13 @@ const props = defineProps({
   },
 });
 
+const router = useRouter();
+const auth = useAuthStore();
 const report = ref(null);
 const loading = ref(true);
 const error = ref("");
-const captureHint = ref(false);
+const watchlistSaved = ref(false);
+const watchlistLoading = ref(false);
 const aiComment = ref(null);
 const aiLoading = ref(false);
 const aiError = ref("");
@@ -907,6 +917,33 @@ async function loadAiComment() {
   }
 }
 
+async function loadWatchlistStatus() {
+  if (!auth.isAuthenticated) return;
+  const { data } = await api.get("/watchlist/");
+  watchlistSaved.value = unwrapList(data).some((entry) => entry.stock?.ticker === props.ticker);
+}
+
+async function toggleWatchlist() {
+  if (!auth.isAuthenticated) {
+    router.push({ path: "/login", query: { next: `/stocks/${props.ticker}` } });
+    return;
+  }
+  watchlistLoading.value = true;
+  try {
+    if (watchlistSaved.value) {
+      await api.delete(`/watchlist/${props.ticker}/`);
+      watchlistSaved.value = false;
+    } else {
+      await api.post(`/watchlist/${props.ticker}/`);
+      watchlistSaved.value = true;
+    }
+  } catch {
+    error.value = "관심 종목 상태를 변경하지 못했습니다.";
+  } finally {
+    watchlistLoading.value = false;
+  }
+}
+
 const IndicatorSection = defineComponent({
   props: {
     title: { type: String, required: true },
@@ -953,6 +990,7 @@ onMounted(async () => {
   try {
     const response = await api.get(`/stocks/${props.ticker}/report/`);
     report.value = response.data;
+    await loadWatchlistStatus();
   } catch (err) {
     error.value = "종목 리포트를 불러오지 못했습니다.";
   } finally {

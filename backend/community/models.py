@@ -75,6 +75,7 @@ class PostLike(models.Model):
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, related_name="replies", null=True, blank=True)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -88,3 +89,46 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.author_id}: {self.content[:30]}"
+
+
+class CommunityNotification(models.Model):
+    class Kind(models.TextChoices):
+        COMMENT = "comment", "댓글"
+        REPLY = "reply", "대댓글"
+        FOLLOW = "follow", "팔로우"
+        LIKE = "like", "좋아요"
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="community_notifications",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_community_notifications",
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="notifications",
+    )
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="notifications",
+    )
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.recipient_id} <- {self.kind} by {self.actor_id}"

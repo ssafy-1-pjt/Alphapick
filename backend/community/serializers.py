@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Comment, Post, PostLike, UserFollow
+from .models import Comment, CommunityNotification, Post, PostLike, UserFollow
+from .moderation import validate_clean_text
 from stocks.models import Stock
 
 
@@ -54,27 +55,60 @@ class CommunityUserSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     author = CommunityUserSerializer(read_only=True)
     can_delete = serializers.SerializerMethodField()
+    post_stock = serializers.CharField(source="post.stock_id", read_only=True, allow_null=True)
+    post_title = serializers.CharField(source="post.title", read_only=True)
+    parent_id = serializers.IntegerField(read_only=True)
+    replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ("id", "post", "author", "content", "created_at", "can_delete")
+        fields = ("id", "post", "post_stock", "post_title", "parent_id", "author", "content", "created_at", "can_delete", "replies")
         read_only_fields = ("id", "post", "author", "created_at", "can_delete")
 
     def get_can_delete(self, obj):
         request = self.context.get("request")
         return bool(request and request.user.is_authenticated and request.user.pk == obj.author_id)
 
+    def get_replies(self, obj):
+        return CommentSerializer(obj.replies.all(), many=True, context=self.context).data
+
 
 class CommentCreateSerializer(serializers.ModelSerializer):
+    parent_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+
     class Meta:
         model = Comment
-        fields = ("content",)
+        fields = ("content", "parent_id")
 
     def validate_content(self, value):
-        cleaned = value.strip()
+        try:
+            cleaned = validate_clean_text(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         if not cleaned:
             raise serializers.ValidationError("댓글 내용을 입력해주세요.")
         return cleaned
+
+
+class CommunityNotificationSerializer(serializers.ModelSerializer):
+    actor = CommunityUserSerializer(read_only=True)
+    post_title = serializers.CharField(source="post.title", read_only=True, default="")
+    post_stock = serializers.CharField(source="post.stock_id", read_only=True, allow_null=True)
+    comment_id = serializers.IntegerField(source="comment.id", read_only=True, allow_null=True)
+
+    class Meta:
+        model = CommunityNotification
+        fields = (
+            "id",
+            "kind",
+            "actor",
+            "post",
+            "post_title",
+            "post_stock",
+            "comment_id",
+            "is_read",
+            "created_at",
+        )
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -86,7 +120,7 @@ class PostSerializer(serializers.ModelSerializer):
     stock_name = serializers.CharField(source="stock.name", read_only=True)
     stock_sector = serializers.CharField(source="stock.sector", read_only=True)
     author = CommunityUserSerializer(read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
+    comments = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
@@ -118,13 +152,19 @@ class PostSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_title(self, value):
-        cleaned = value.strip()
+        try:
+            cleaned = validate_clean_text(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         if not cleaned:
             raise serializers.ValidationError("제목을 입력해주세요.")
         return cleaned
 
     def validate_content(self, value):
-        cleaned = value.strip()
+        try:
+            cleaned = validate_clean_text(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         if not cleaned:
             raise serializers.ValidationError("내용을 입력해주세요.")
         return cleaned
@@ -144,3 +184,10 @@ class PostSerializer(serializers.ModelSerializer):
     def get_can_edit(self, obj):
         request = self.context.get("request")
         return bool(request and request.user.is_authenticated and request.user.pk == obj.author_id)
+
+    def get_comments(self, obj):
+        return CommentSerializer(
+            [comment for comment in obj.comments.all() if comment.parent_id is None],
+            many=True,
+            context=self.context,
+        ).data

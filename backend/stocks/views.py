@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Stock, Theme, ThemeGroup, Watchlist
+from .models import Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
 from .serializers import (
     AICommentSerializer,
     PortfolioSerializer,
@@ -12,6 +12,8 @@ from .serializers import (
     StockReportSerializer,
     StockSummarySerializer,
     ThemeGroupSerializer,
+    WatchlistEntrySerializer,
+    WatchlistFolderSerializer,
 )
 from .services import (
     PRICE_HISTORY_DAYS,
@@ -136,21 +138,48 @@ class WatchlistView(APIView):
 
     def post(self, request, ticker):
         stock = generics.get_object_or_404(Stock, ticker=ticker)
-        Watchlist.objects.get_or_create(user=request.user, stock=stock)
-        return Response({"ticker": ticker, "saved": True}, status=status.HTTP_201_CREATED)
+        folder_id = request.data.get("folder_id")
+        folder = None
+        if folder_id:
+            folder = generics.get_object_or_404(WatchlistFolder, pk=folder_id, user=request.user)
+        watchlist, created = Watchlist.objects.get_or_create(user=request.user, stock=stock)
+        if watchlist.folder_id != (folder.id if folder else None):
+            watchlist.folder = folder
+            watchlist.save(update_fields=("folder",))
+        return Response({"ticker": ticker, "saved": True, "folder": folder.id if folder else None}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     def delete(self, request, ticker):
         Watchlist.objects.filter(user=request.user, stock_id=ticker).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class MyWatchlistView(generics.ListAPIView):
-    serializer_class = StockSummarySerializer
+class WatchlistFolderListCreateView(generics.ListCreateAPIView):
+    serializer_class = WatchlistFolderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Stock.objects.filter(watchlisted_by__user=self.request.user).prefetch_related(
-            "scores",
-            "financial_metrics",
-            "theme_links__theme__group",
+        return WatchlistFolder.objects.filter(user=self.request.user).annotate(item_count=Count("items"))
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class WatchlistFolderDetailView(generics.DestroyAPIView):
+    serializer_class = WatchlistFolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return WatchlistFolder.objects.filter(user=self.request.user)
+
+
+class MyWatchlistView(generics.ListAPIView):
+    serializer_class = WatchlistEntrySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return (
+            Watchlist.objects.filter(user=self.request.user)
+            .select_related("stock", "folder")
+            .prefetch_related("stock__scores", "stock__financial_metrics", "stock__theme_links__theme__group")
+            .order_by("folder__name", "-created_at")
         )

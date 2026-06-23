@@ -212,9 +212,25 @@ class PortfolioItem(models.Model):
         return f"{self.portfolio_run_id}:{self.stock_id}"
 
 
+class WatchlistFolder(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="watchlist_folders")
+    name = models.CharField(max_length=40)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(fields=("user", "name"), name="unique_user_watchlist_folder"),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.name}"
+
+
 class Watchlist(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="stock_watchlist")
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name="watchlisted_by")
+    folder = models.ForeignKey(WatchlistFolder, on_delete=models.SET_NULL, related_name="items", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
