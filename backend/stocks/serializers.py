@@ -328,6 +328,7 @@ class StockReportSerializer(serializers.Serializer):
     score = serializers.SerializerMethodField()
     financialMetric = serializers.SerializerMethodField()
     priceSeries = serializers.SerializerMethodField()
+    refreshedAt = serializers.SerializerMethodField()
     investmentNotice = serializers.SerializerMethodField()
 
     def get_stock(self, obj):
@@ -343,6 +344,10 @@ class StockReportSerializer(serializers.Serializer):
 
     def get_priceSeries(self, obj):
         return PriceDailySerializer(obj["prices"], many=True).data
+
+    def get_refreshedAt(self, obj):
+        value = obj.get("refreshed_at")
+        return value.isoformat() if value else None
 
     def get_investmentNotice(self, obj):
         return "본 서비스는 학습용 분석 도구이며 실제 투자 권유가 아닙니다. 모든 투자의 책임은 투자자 본인에게 있습니다."

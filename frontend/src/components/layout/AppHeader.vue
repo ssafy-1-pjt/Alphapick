@@ -6,13 +6,13 @@
         AlphaPick
       </RouterLink>
 
-      <nav class="flex items-center gap-1 overflow-x-auto lg:mt-7 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-2 lg:overflow-visible">
+      <nav class="mobile-nav flex items-center gap-1 lg:mt-7 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-2">
         <template v-for="item in primaryNav" :key="item.label">
           <RouterLink v-if="item.to" class="side-nav-link" :to="item.to">
             <component :is="item.icon" :size="19" />
             <span>{{ item.label }}</span>
           </RouterLink>
-          <button v-else class="side-nav-link side-nav-link-disabled" type="button" disabled>
+          <button v-else class="side-nav-link side-nav-link-disabled nav-mobile-hidden" type="button" disabled>
             <component :is="item.icon" :size="19" />
             <span>{{ item.label }}</span>
           </button>
@@ -31,11 +31,11 @@
           </button>
         </template>
         <template v-else>
-          <RouterLink class="side-nav-link" to="/login">
+          <RouterLink class="side-nav-link nav-mobile-hidden" to="/login">
             <LogIn :size="19" />
             <span>로그인</span>
           </RouterLink>
-          <RouterLink class="side-nav-link" to="/register">
+          <RouterLink class="side-nav-link nav-mobile-hidden" to="/register">
             <UserPlus :size="19" />
             <span>회원가입</span>
           </RouterLink>

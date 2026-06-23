@@ -8,9 +8,11 @@
 |---|---|---|---|
 | pykrx | 구현됨 | `seed_pykrx` 관리 명령어, 백테스트 벤치마크 보강 | 국내 주가/지수 데이터 수집 |
 | KRX KIND 상장사 목록 | 구현됨 | `seed_pykrx` 관리 명령어 | pykrx 종목 목록 실패 시 KOSPI 상장사 목록 fallback |
-| 네이버 CompanyGuide/WiseReport | 구현됨 | `seed_pykrx` 관리 명령어 | 재무 지표 보강용 HTML/AJAX 조회 |
+| 네이버 CompanyGuide/WiseReport | 구현됨 | `seed_pykrx`, `refresh_financials` 관리 명령어 | 재무 지표 보강용 HTML/AJAX 조회 |
+| 네이버 뉴스 검색 API | 구현됨 | `refresh_news_sentiment` 관리 명령어 | 종목별 최근 뉴스 수집 |
+| GMS OpenAI Gateway | 구현됨 | AI 코멘트, 뉴스 감성 분석 | `gpt-5.4-nano` 기반 구조화 분석 |
 | 사용자 제공 테마 추출본 | 구현됨 | `seed_themes` 관리 명령어 | 국내 종목 섹터·2차 테마 매핑 재가공 |
-| OpenDART | 미연동 | 향후 확장 후보 | 재무/공시 데이터 보강 가능 |
+| OpenDART | 선택 구현 | `refresh_news_sentiment --include-dart` 관리 명령어 | `DART_API_KEY`가 있을 때 공식 공시 수집 |
 
 ## DB 데이터와 API 데이터 구분
 
@@ -18,7 +20,7 @@
 
 ```mermaid
 flowchart LR
-  External["pykrx / KRX KIND / 네이버 CompanyGuide"] --> Seed["seed_pykrx 관리 명령어"]
+  External["pykrx / KRX KIND / 네이버 CompanyGuide / 네이버 뉴스 / GMS"] --> Seed["관리 명령어"]
   ThemeSource["사용자 제공 테마 추출본"] --> ThemeSeed["seed_themes 관리 명령어"]
   Fixture["seed_alphapick 샘플 데이터"] --> DB["SQLite DB"]
   Seed --> DB
@@ -83,14 +85,14 @@ pykrx.stock.get_index_ohlcv_by_date()
 
 ```powershell
 cd backend
-.\.venv\Scripts\python.exe manage.py seed_pykrx --market KOSPI --days 365 --flush
+.\.venv\Scripts\python.exe manage.py seed_pykrx --market KOSPI --days 1095 --flush
 ```
 
 테스트용 실행 예시:
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py seed_pykrx --tickers 005930,000660 --days 365 --sleep 0 --flush
-.\.venv\Scripts\python.exe manage.py seed_pykrx --market KOSPI --days 365 --limit 30 --sleep 0.2 --flush
+.\.venv\Scripts\python.exe manage.py seed_pykrx --tickers 005930,000660 --days 1095 --sleep 0 --flush
+.\.venv\Scripts\python.exe manage.py seed_pykrx --market KOSPI --days 1095 --limit 30 --sleep 0.2 --flush
 ```
 
 주의사항:
@@ -139,7 +141,40 @@ cd backend
 - 요청 실패 시 재무 지표는 선택 데이터로 처리하고, 가격/점수 계산은 가능한 범위에서 진행합니다.
 - 과도한 호출을 피하기 위해 `--sleep` 옵션 사용을 권장합니다.
 
-### 4. 사용자 제공 테마 추출본
+### 4. 네이버 뉴스 검색 API + GMS 감성 분석
+
+| 항목 | 내용 |
+|---|---|
+| 기본 URL | `https://openapi.naver.com/v1/search/news.json` |
+| 사용 파일 | `backend/stocks/management/commands/refresh_news_sentiment.py` |
+| 목적 | 종목별 최근 뉴스 수집, AI 기반 감성/영향도 분석, 종합 뉴스 감성 점수 산출 |
+| 인증키 | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, 선택적으로 `GMS_KEY` |
+| 요청 조건 | `query`, `display`, `start=1`, `sort=date` |
+| 호출 한도 | 클라이언트 아이디 기준 하루 25,000회 |
+| 저장 위치 | `ScoreSnapshot.news`, `ScoreSnapshot.disclosures`, `ScoreSnapshot.sentiment_score` |
+
+대표 실행 명령:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe manage.py refresh_news_sentiment --tickers 005930 --display 10 --days 14
+```
+
+동작 방식:
+
+- 네이버 뉴스 검색 API에서 종목명 기준 최근 뉴스를 가져옵니다.
+- 제목과 요약에서 HTML 태그를 제거하고 유사 제목을 중복 제거합니다.
+- `GMS_KEY`가 있으면 `gpt-5.4-nano`로 기사별 관련도, 이벤트 유형, 감성, 영향도, 신뢰도를 JSON으로 분류합니다.
+- `GMS_KEY`가 없거나 AI 호출이 실패하면 제목/요약 키워드 기반 임시 분류로 대체합니다.
+- 기사별 점수는 감성, 영향도, 관련도, 신뢰도, 최신성, 출처 가중치를 곱해 산출하고 0~100 뉴스 감성 점수로 변환합니다.
+
+주의사항:
+
+- 뉴스 본문 전체를 크롤링하지 않고 제목과 요약만 사용합니다.
+- `--include-dart`와 `DART_API_KEY`를 함께 사용하면 OpenDART corp_code 매핑을 캐시한 뒤 공식 공시를 수집합니다.
+- 뉴스가 없으면 화면에는 “최근 수집된 종목 관련 뉴스가 없습니다.”라고 표시하고 감성 집계에서는 제외합니다.
+
+### 5. 사용자 제공 테마 추출본
 
 | 항목 | 내용 |
 |---|---|
@@ -174,14 +209,14 @@ cd backend
 - 더 완전한 CSV/JSON 원본이 생기면 같은 명령 구조로 원문 기반 매핑 비율을 높일 수 있습니다.
 - 보정 규칙은 업종/종목명 기반 휴리스틱이므로 최종 서비스 전에는 주요 테마별 수동 검수가 필요합니다.
 
-## 향후 연동 후보
+## 선택 연동 후보
 
 ### OpenDART
 
 | 항목 | 내용 |
 |---|---|
-| 상태 | 미연동 |
-| 목적 | 기업 재무제표, 공시 데이터 보강 |
+| 상태 | 공시 목록 수집 선택 구현 |
+| 목적 | 기업 공식 공시 데이터 보강 |
 | 인증키 | 필요 |
 | 활용 화면 | 종목 리포트의 재무/공시 영역 |
 
@@ -212,10 +247,15 @@ flowchart TD
 
 ## 환경 변수 후보
 
-현재 필수 외부 API 키는 없습니다. 향후 OpenDART를 실제 연동할 경우 다음 환경 변수를 추가할 수 있습니다.
+뉴스 감성 분석을 실제 수집 데이터로 실행하려면 네이버 뉴스 검색 API 키가 필요합니다. AI 분류는 `GMS_KEY`가 있으면 사용하고, 없으면 키워드 기반 임시 분류로 대체합니다.
 
 ```txt
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+NAVER_NEWS_URL=https://openapi.naver.com/v1/search/news.json
+GMS_KEY=
 DART_API_KEY=
+DART_LIST_URL=https://opendart.fss.or.kr/api/list.json
 ```
 
 ## 제출/발표 시 설명 포인트
@@ -224,4 +264,4 @@ DART_API_KEY=
 - 섹터·테마 분류는 `seed_themes` 관리 명령어로 DB에 적재하며, 화면에서는 내부 API만 조회합니다.
 - 프론트엔드는 외부 API를 직접 호출하지 않고 내부 Django API만 호출합니다.
 - 외부 API 장애가 화면 전체 장애로 번지지 않도록, 백엔드 API와 DB를 중간 계층으로 두는 구조입니다.
-- 향후에는 OpenDART 데이터를 백엔드에서 수집해 종목 리포트의 재무/공시 영역을 보강할 수 있습니다.
+- `DART_API_KEY`가 있으면 OpenDART 공시 목록을 백엔드에서 수집해 종목 리포트의 공시 영역을 보강할 수 있습니다.

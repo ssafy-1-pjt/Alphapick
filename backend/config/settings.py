@@ -19,6 +19,7 @@ def load_env_file(path):
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
+load_env_file(BASE_DIR.parent / ".env")
 load_env_file(BASE_DIR / ".env")
 
 
@@ -133,8 +134,23 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175",
     ).split(",")
     if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+GMS_API_KEY = os.getenv("GMS_KEY") or os.getenv("gms_key", "")
+GMS_CHAT_COMPLETIONS_URL = os.getenv(
+    "GMS_CHAT_COMPLETIONS_URL",
+    "https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions",
+)
+GMS_CHAT_MODEL = os.getenv("GMS_CHAT_MODEL", "gpt-5.4-nano")
+GMS_CHAT_TIMEOUT_SECONDS = int(os.getenv("GMS_CHAT_TIMEOUT_SECONDS", "12"))
+
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET", "")
+NAVER_NEWS_URL = os.getenv("NAVER_NEWS_URL", "https://openapi.naver.com/v1/search/news.json")
+
+DART_API_KEY = os.getenv("DART_API_KEY", "")
+DART_LIST_URL = os.getenv("DART_LIST_URL", "https://opendart.fss.or.kr/api/list.json")

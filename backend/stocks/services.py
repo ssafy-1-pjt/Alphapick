@@ -1,9 +1,14 @@
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+import json
+import re
 
 import pandas as pd
 from django.db import transaction
 from django.db.models import Max, Prefetch
+from django.conf import settings
+from django.utils import timezone
+import requests
 
 from .models import AICommentCache, FinancialMetric, PortfolioItem, PortfolioRun, PriceDaily, ScoreSnapshot, Stock
 
@@ -11,8 +16,19 @@ from .models import AICommentCache, FinancialMetric, PortfolioItem, PortfolioRun
 PORTFOLIO_THRESHOLD = 70
 MIN_RELIABILITY_SCORE = 70
 MIN_COMPONENT_SCORE = 70
-PRICE_HISTORY_DAYS = 365
+PRICE_HISTORY_DAYS = 1095
 PRICE_REFRESH_LOOKBACK_DAYS = PRICE_HISTORY_DAYS + 40
+KRX_VOLUME_PROFILE = (
+    (time(9, 0), 0.00),
+    (time(9, 30), 0.12),
+    (time(10, 0), 0.21),
+    (time(11, 0), 0.35),
+    (time(12, 0), 0.45),
+    (time(13, 0), 0.55),
+    (time(14, 0), 0.67),
+    (time(15, 0), 0.82),
+    (time(15, 30), 1.00),
+)
 BACKTEST_PERIODS = {
     "1w": {"days": 7, "label": "1주"},
     "1m": {"days": 30, "label": "1개월"},
@@ -591,6 +607,7 @@ def stock_report(ticker):
         "score": score,
         "metric": metric,
         "prices": prices,
+        "refreshed_at": timezone.localtime(),
     }
 
 
@@ -713,10 +730,11 @@ def update_refreshed_volume_score(stock, frame):
     if not latest_score:
         return
 
-    recent_volume = frame["volume"].tail(20)
+    recent_volume = frame["volume"].iloc[-21:-1].tail(20)
     average_volume = float(recent_volume.mean()) if not recent_volume.empty else 0
     latest_volume = float(frame["volume"].iloc[-1])
-    volume_ratio = round(latest_volume / average_volume, 2) if average_volume else 1.0
+    projected_volume = latest_volume / market_cumulative_volume_ratio(frame.index[-1].date())
+    volume_ratio = round(projected_volume / average_volume, 2) if average_volume else 1.0
     volume_surge = volume_ratio >= 2.0
     latest_score.volume_ratio = volume_ratio
     latest_score.volume_surge_flag = volume_surge
@@ -729,6 +747,32 @@ def update_refreshed_volume_score(stock, frame):
             break
     latest_score.technical_indicators = indicators
     latest_score.save(update_fields=["volume_ratio", "volume_surge_flag", "technical_indicators"])
+
+
+def market_cumulative_volume_ratio(trade_date):
+    """Return expected regular-session cumulative volume ratio for same-day rows."""
+    now = timezone.localtime()
+    if trade_date != now.date():
+        return 1.0
+
+    points = [
+        (timezone.make_aware(datetime.combine(now.date(), point_time), now.tzinfo), ratio)
+        for point_time, ratio in KRX_VOLUME_PROFILE
+    ]
+    if now <= points[0][0]:
+        return 0.08
+    if now >= points[-1][0]:
+        return 1.0
+
+    for (start_time, start_ratio), (end_time, end_ratio) in zip(points, points[1:]):
+        if start_time <= now <= end_time:
+            elapsed = (now - start_time).total_seconds()
+            duration = (end_time - start_time).total_seconds()
+            progress = elapsed / duration if duration else 0
+            ratio = start_ratio + (end_ratio - start_ratio) * progress
+            return max(0.08, min(1.0, ratio))
+
+    return 1.0
 
 
 def normalize_backtest_period(value):
@@ -951,9 +995,27 @@ def generate_ai_comment(ticker, risk_type=RISK_TYPE_NEUTRAL):
         base_date=score.base_date,
         risk_type=risk_type,
     ).first()
-    if cached:
+    if cached and cached.provider == ai_comment_provider():
         return cached, True
 
+    local_payload = build_local_ai_comment_payload(stock, score, metric, risk_type)
+    gms_payload = request_gms_ai_comment(stock, score, metric, risk_type, local_payload)
+    payload = gms_payload or local_payload
+
+    comment, _ = AICommentCache.objects.update_or_create(
+        stock=stock,
+        base_date=score.base_date,
+        risk_type=risk_type,
+        defaults=payload,
+    )
+    return comment, False
+
+
+def ai_comment_provider():
+    return f"gms-{settings.GMS_CHAT_MODEL}" if getattr(settings, "GMS_API_KEY", "") else "local-mvp"
+
+
+def build_local_ai_comment_payload(stock, score, metric, risk_type):
     best_cards = sorted(score.score_cards or [], key=lambda card: card.get("score", 0), reverse=True)
     worst_cards = sorted(score.score_cards or [], key=lambda card: card.get("score", 100))
     positive_title = best_cards[0]["title"] if best_cards else "핵심 지표"
@@ -973,14 +1035,113 @@ def generate_ai_comment(ticker, risk_type=RISK_TYPE_NEUTRAL):
     positive = f"{stock.name}은 {positive_title} 점수가 강하고, 회사 {score.company_score:.1f}점·타이밍 {score.timing_score:.1f}점으로 {RISK_LABELS[risk_type]} 허들(회사 {hurdles['company']}점·타이밍 {hurdles['timing']}점) 기준 {pass_text}."
     negative = f"다만 {negative_title} 항목과 '{score.warning or '단기 변동성'}' 이슈는 진입 전 확인이 필요합니다."
     conclusion = f"목표가 기준 상승 여력은 약 {upside}%이며, 현재 판단은 '{score.verdict}'입니다. 본 결과는 투자 참고용 분석입니다."
+    return {
+        "positive": positive,
+        "negative": negative,
+        "conclusion": conclusion,
+        "provider": "local-mvp",
+    }
 
-    comment = AICommentCache.objects.create(
-        stock=stock,
-        base_date=score.base_date,
-        risk_type=risk_type,
-        positive=positive,
-        negative=negative,
-        conclusion=conclusion,
-        provider="local-mvp",
-    )
-    return comment, False
+
+def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
+    api_key = getattr(settings, "GMS_API_KEY", "")
+    if not api_key:
+        return None
+
+    prompt_payload = {
+        "stock": {
+            "name": stock.name,
+            "ticker": stock.ticker,
+            "sector": stock.sector,
+            "market": stock.market,
+        },
+        "riskType": RISK_LABELS[risk_type],
+        "score": {
+            "total": score.total_score,
+            "company": score.company_score,
+            "timing": score.timing_score,
+            "reliability": score.reliability_score,
+            "verdict": score.verdict,
+            "signal": score.signal,
+            "warning": score.warning,
+            "reason": score.reason,
+            "summaryMetrics": score.summary_metrics,
+            "scoreCards": score.score_cards,
+        },
+        "financial": {
+            "currentPrice": metric.current_price if metric else None,
+            "targetPrice": metric.target_price if metric else None,
+            "per": metric.per if metric else None,
+            "pbr": metric.pbr if metric else None,
+            "roe": metric.roe if metric else None,
+        },
+        "fallbackExample": {
+            "positive": fallback_payload["positive"],
+            "negative": fallback_payload["negative"],
+            "conclusion": fallback_payload["conclusion"],
+        },
+    }
+    messages = [
+        {
+            "role": "developer",
+            "content": (
+                "Answer in Korean. You write concise stock report comments for AlphaPick. "
+                "Return only valid JSON with keys positive, negative, conclusion. "
+                "Do not provide investment advice; say it is for reference when needed."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "다음 종목 리포트 데이터를 바탕으로 긍정 요인, 주의 요인, 종합 의견을 각각 1문장으로 작성하세요.\n"
+                f"{json.dumps(prompt_payload, ensure_ascii=False)}"
+            ),
+        },
+    ]
+    try:
+        response = requests.post(
+            settings.GMS_CHAT_COMPLETIONS_URL,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            json={
+                "model": settings.GMS_CHAT_MODEL,
+                "messages": messages,
+                "temperature": 0.3,
+            },
+            timeout=settings.GMS_CHAT_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        parsed = parse_ai_comment_json(content)
+    except (KeyError, ValueError, requests.RequestException, json.JSONDecodeError):
+        return None
+
+    if not parsed:
+        return None
+    return {
+        "positive": parsed["positive"],
+        "negative": parsed["negative"],
+        "conclusion": parsed["conclusion"],
+        "provider": f"gms-{settings.GMS_CHAT_MODEL}",
+    }
+
+
+def parse_ai_comment_json(content):
+    text = str(content or "").strip()
+    if not text:
+        return None
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+    if not text.startswith("{"):
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            text = match.group(0)
+    data = json.loads(text)
+    required = ["positive", "negative", "conclusion"]
+    if not all(data.get(key) for key in required):
+        return None
+    return {key: str(data[key]).strip() for key in required}

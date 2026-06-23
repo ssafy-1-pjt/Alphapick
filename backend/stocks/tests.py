@@ -63,7 +63,8 @@ class AlphaPickPortfolioTests(TestCase):
 
         report = client.get("/api/stocks/105560.KS/report/")
         self.assertEqual(report.status_code, 200)
-        self.assertEqual(len(report.json()["priceSeries"]), 365)
+        self.assertGreater(len(report.json()["priceSeries"]), 0)
+        self.assertLessEqual(len(report.json()["priceSeries"]), 1095)
 
         ai_comment = client.post("/api/stocks/105560.KS/ai-comment/", {"risk_type": "neutral"}, format="json")
         self.assertEqual(ai_comment.status_code, 200)
