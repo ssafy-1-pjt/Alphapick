@@ -125,13 +125,28 @@ class Command(BaseCommand):
                 aggregate = self.aggregate_sentiment([*analyzed, *scoring_disclosures])
                 score.news = [self.serialize_article(item) for item in analyzed[:30]]
                 score.disclosures = [self.serialize_article(item) for item in disclosures[:100]]
-                score.sentiment_score = aggregate["score"]
+                
+                if not isinstance(score.area_scores, dict):
+                    score.area_scores = {}
+                score.area_scores["newsSentiment"] = aggregate["score"]
+                
+                # Recalculate total_score incorporating news sentiment (10% weight)
+                if aggregate["score"] is not None:
+                    base_total = score.company_score * 0.45 + score.timing_score * 0.55
+                    if base_total > 0:
+                        discount_factor = score.total_score / base_total
+                    else:
+                        discount_factor = 1.0
+                    new_base_total = base_total * 0.90 + aggregate["score"] * 0.10
+                    score.total_score = max(0.0, min(100.0, round(new_base_total * discount_factor, 1)))
+                
                 score.scoring_log = self.replace_log_entry(score.scoring_log, aggregate)
-                score.save(update_fields=["news", "disclosures", "sentiment_score", "scoring_log"])
+                score.save(update_fields=["news", "disclosures", "area_scores", "total_score", "scoring_log"])
                 updated += 1
 
+            ns_display = f"{aggregate['score']:.1f}" if (aggregate["score"] is not None) else "None"
             self.stdout.write(
-                f"{stock.ticker} {stock.name}: 뉴스 {len(analyzed)}건, 공시 {len(disclosures)}건, 감성 {score.sentiment_score:.1f}"
+                f"{stock.ticker} {stock.name}: 뉴스 {len(analyzed)}건, 공시 {len(disclosures)}건, 감성 {ns_display}"
             )
             if options["sleep"] > 0:
                 time.sleep(options["sleep"])
@@ -459,7 +474,7 @@ class Command(BaseCommand):
         if not articles:
             return {
                 "type": "news_sentiment",
-                "score": 50.0,
+                "score": None,
                 "label": "중립",
                 "positive": 0,
                 "neutral": 0,

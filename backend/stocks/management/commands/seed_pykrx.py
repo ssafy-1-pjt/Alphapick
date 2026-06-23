@@ -777,6 +777,7 @@ class Command(BaseCommand):
                     "marketDirection": score["market_direction"],
                     "meanReversion": score["mean_reversion"],
                     "drawdownControl": score["drawdown_control"],
+                    "newsSentiment": None,
                 },
                 "scoring_log": score["scoring_log"],
                 "reason": score["reason"],

@@ -136,9 +136,9 @@
         <section class="mb-6">
           <p class="text-sm font-extrabold text-slate-900 mb-1">종합 {{ formatScore(report.score.total_score) }}점의 구성</p>
           <p class="text-xs font-bold text-slate-400 mb-3">
-            아래 3개 레이어 점수를 가중합산해 종합 점수를 산출합니다. 카드를 누르면 세부 신호를 볼 수 있습니다.
+            아래 레이어 점수를 가중합산해 종합 점수를 산출합니다. 카드를 누르면 세부 신호를 볼 수 있습니다.
           </p>
-          <div class="grid gap-3 md:grid-cols-3">
+          <div class="grid gap-3 md:grid-cols-4">
             <!-- 가치 / 퀄리티 Card -->
             <div
               class="panel p-4 cursor-pointer transition border border-slate-100 hover:border-slate-300"
@@ -250,9 +250,62 @@
                 </div>
               </div>
             </div>
+
+            <!-- 뉴스 감성 Card -->
+            <div
+              class="panel p-4 cursor-pointer transition border border-slate-100 hover:border-slate-300"
+              @click="openLayers.newsSentiment = !openLayers.newsSentiment"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-extrabold text-slate-800">뉴스 감성</span>
+                <span
+                  class="text-xl font-extrabold tabular-nums"
+                  :class="report.score.area_scores.newsSentiment !== null && report.score.area_scores.newsSentiment !== undefined ? 'text-indigo-600' : 'text-slate-400'"
+                >
+                  {{ report.score.area_scores.newsSentiment !== null && report.score.area_scores.newsSentiment !== undefined ? formatScore(report.score.area_scores.newsSentiment) : '-' }}
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                최근 뉴스 및 공시의 긍정/부정 감성을 계량화하여 투자 심리를 측정합니다.
+              </p>
+              <div class="mt-3.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  v-if="report.score.area_scores.newsSentiment !== null && report.score.area_scores.newsSentiment !== undefined"
+                  class="h-full bg-indigo-500 rounded-full"
+                  :style="{ width: `${scorePercent(report.score.area_scores.newsSentiment)}%` }"
+                ></div>
+                <div
+                  v-else
+                  class="h-full bg-slate-200 rounded-full w-0"
+                ></div>
+              </div>
+              <div class="mt-2 text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                <span class="transition-transform duration-150 inline-block" :class="openLayers.newsSentiment ? 'rotate-180' : ''">▾</span>
+                세부 신호 보기
+              </div>
+              <div v-show="openLayers.newsSentiment" class="mt-3 pt-3 border-t border-dashed border-slate-200 flex flex-col gap-2" @click.stop>
+                <div v-if="(report.score.news && report.score.news.length > 0) || (report.score.disclosures && report.score.disclosures.length > 0)" class="flex flex-col gap-2">
+                  <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
+                    <span>긍정 뉴스/공시</span>
+                    <b class="text-slate-900">{{ countNewsSentiment([...(report.score.news || []), ...(report.score.disclosures || [])], 'positive') }}건</b>
+                  </div>
+                  <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
+                    <span>중립 뉴스/공시</span>
+                    <b class="text-slate-900">{{ countNewsSentiment([...(report.score.news || []), ...(report.score.disclosures || [])], 'neutral') }}건</b>
+                  </div>
+                  <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
+                    <span>부정 뉴스/공시</span>
+                    <b class="text-slate-900">{{ countNewsSentiment([...(report.score.news || []), ...(report.score.disclosures || [])], 'negative') }}건</b>
+                  </div>
+                </div>
+                <div v-else class="text-xs text-slate-400 font-bold py-1">
+                  분석된 뉴스/공시 데이터가 없습니다.
+                </div>
+              </div>
+            </div>
           </div>
           <p class="text-center font-bold text-slate-400 text-xs mt-3">
-            가치/퀄리티 · 주도주 모멘텀 · 리스크 제어를 가중합산 → <b>종합 {{ formatScore(report.score.total_score) }}점</b>
+            가치/퀄리티 · 주도주 모멘텀 · 리스크 제어 · 뉴스 감성을 가중합산 → <b>종합 {{ formatScore(report.score.total_score) }}점</b>
           </p>
         </section>
 
@@ -608,8 +661,14 @@ const tabOptions = [
 const openLayers = reactive({
   valueQuality: false,
   leadershipMomentum: true,
-  riskControl: false
+  riskControl: false,
+  newsSentiment: false
 });
+
+const countNewsSentiment = (news, type) => {
+  if (!news || !Array.isArray(news)) return 0;
+  return news.filter(item => item.sentiment === type).length;
+};
 
 const aiLoadingLabel = computed(() => (aiComment.value ? "다시 보기" : "AI 분석 보기"));
 
