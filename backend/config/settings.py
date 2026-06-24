@@ -20,7 +20,6 @@ def load_env_file(path):
 
 
 load_env_file(BASE_DIR.parent / ".env")
-load_env_file(BASE_DIR / ".env")
 
 
 def env_bool(name, default=False):
