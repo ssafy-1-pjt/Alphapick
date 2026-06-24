@@ -6,12 +6,12 @@
       <div class="panel p-6">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p class="text-sm font-black text-emerald-600">Investor Profile</p>
+            <p class="text-sm font-black text-mint">Investor Profile</p>
             <h1 class="mt-1 text-3xl font-black text-slate-950">{{ activity.user.display_name }}</h1>
             <p class="mt-1 text-slate-500">@{{ activity.user.username }} · 팔로워 {{ activity.user.followers_count }} · 팔로우 {{ activity.user.following_count }}</p>
           </div>
           <div class="flex flex-wrap gap-3">
-            <button v-if="auth.isAuthenticated && !activity.user.is_me" class="inline-flex min-h-12 items-center gap-2 rounded-lg px-6 text-base font-black shadow-sm transition" :class="activity.user.is_following ? 'border border-emerald-300 bg-emerald-50 text-emerald-800' : 'bg-emerald-600 text-white'" type="button" :disabled="followLoading" @click="toggleFollow">
+            <button v-if="auth.isAuthenticated && !activity.user.is_me" class="inline-flex min-h-12 items-center gap-2 rounded-lg px-6 text-base font-black shadow-sm transition" :class="activity.user.is_following ? 'border border-mint/30 bg-mint/5 text-mint' : 'bg-mint text-white'" type="button" :disabled="followLoading" @click="toggleFollow">
               <UserCheck v-if="activity.user.is_following" :size="20" /><UserPlus v-else :size="20" />
               {{ activity.user.is_following ? "팔로우 중" : "팔로우" }}
             </button>
@@ -22,24 +22,24 @@
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 class="text-xl font-black text-slate-950">작성 게시글 <span class="text-emerald-700">{{ activity.posts.length }}</span></h2>
+          <h2 class="text-xl font-black text-slate-950">작성 게시글 <span class="text-mint">{{ activity.posts.length }}</span></h2>
           <div class="mt-3 space-y-3" :class="{ 'activity-scroll': activity.posts.length > 8 }">
             <article v-for="post in activity.posts" :key="post.id" class="panel p-4">
-              <RouterLink v-if="post.stock" class="text-xs font-black text-emerald-700 hover:underline" :to="postDestination(post)">{{ post.stock_name || post.stock }} 토론방</RouterLink>
+              <RouterLink v-if="post.stock" class="text-xs font-black text-mint hover:underline" :to="postDestination(post)">{{ post.stock_name || post.stock }} 토론방</RouterLink>
               <h3 class="mt-1 text-lg font-black text-slate-950">{{ post.title }}</h3>
               <p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ post.content }}</p>
-              <div class="mt-3 flex items-center justify-between gap-3"><p class="text-xs font-bold text-slate-400">{{ formatDate(post.created_at) }} · 댓글 {{ post.comments_count }}</p><RouterLink class="text-xs font-black text-emerald-700 hover:underline" :to="postDestination(post)">원문 보기</RouterLink></div>
+              <div class="mt-3 flex items-center justify-between gap-3"><p class="text-xs font-bold text-slate-400">{{ formatDate(post.created_at) }} · 댓글 {{ post.comments_count }}</p><RouterLink class="text-xs font-black text-mint hover:underline" :to="postDestination(post)">원문 보기</RouterLink></div>
             </article>
             <p v-if="!activity.posts.length" class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">작성한 게시글이 없습니다.</p>
           </div>
         </section>
         <section>
-          <h2 class="text-xl font-black text-slate-950">작성 댓글 <span class="text-emerald-700">{{ activity.comments.length }}</span></h2>
+          <h2 class="text-xl font-black text-slate-950">작성 댓글 <span class="text-mint">{{ activity.comments.length }}</span></h2>
           <div class="mt-3 space-y-3" :class="{ 'activity-scroll': activity.comments.length > 8 }">
             <article v-for="comment in activity.comments" :key="comment.id" class="panel p-4">
               <p class="text-xs font-black text-slate-400">{{ comment.post_title }}</p>
               <p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ comment.content }}</p>
-              <div class="mt-3 flex items-center justify-between gap-3"><p class="text-xs font-bold text-slate-400">{{ formatDate(comment.created_at) }}</p><RouterLink class="text-xs font-black text-emerald-700 hover:underline" :to="commentDestination(comment)">원문 댓글 보기</RouterLink></div>
+              <div class="mt-3 flex items-center justify-between gap-3"><p class="text-xs font-bold text-slate-400">{{ formatDate(comment.created_at) }}</p><RouterLink class="text-xs font-black text-mint hover:underline" :to="commentDestination(comment)">원문 댓글 보기</RouterLink></div>
             </article>
             <p v-if="!activity.comments.length" class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">작성한 댓글이 없습니다.</p>
           </div>

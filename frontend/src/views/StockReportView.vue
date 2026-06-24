@@ -9,39 +9,50 @@
         <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <h1 class="text-3xl font-bold text-[#172033] md:text-4xl">{{ report.stock.name }}</h1>
-              <span class="badge bg-slate-100 text-slate-600">{{ report.stock.ticker }}</span>
-              <span class="text-sm font-extrabold text-blue-600">{{ report.score.signal }}</span>
-              <span class="badge bg-emerald-50 text-emerald-700">{{ report.stock.sector }}</span>
+              <h1 class="text-3xl font-bold text-[#172033] md:text-4xl break-keep text-balance">{{ report.stock.name }}</h1>
+              <span class="badge bg-slate-100 text-slate-600 tabular-nums">{{ report.stock.ticker }}</span>
+              <span class="badge bg-mint/10 text-mint break-keep">{{ report.stock.sector }}</span>
               <span
                 v-for="theme in stockThemes"
                 :key="theme"
-                class="badge bg-blue-50 text-blue-700"
+                class="badge bg-blue-50 text-blue-700 break-keep"
               >
                 {{ theme }}
               </span>
             </div>
             <div class="mt-2 flex flex-wrap items-center gap-2">
-              <p class="text-4xl font-extrabold leading-none text-slate-950">{{ latestPrice }}원</p>
-              <p class="text-sm font-bold text-slate-500">{{ latestTradeDateText }}</p>
-              <p class="text-sm font-extrabold" :class="dailyChangeClass">{{ dailyChangeSummaryText }}</p>
-              <span v-if="report.stock.low_liquidity_flag" class="badge bg-amber-100 text-amber-700">유동성 주의</span>
-              <span v-if="report.score.fail_safe_flag" class="badge bg-red-100 text-red-700">Fail-safe</span>
-              <span v-if="report.score.volume_surge_flag" class="badge bg-blue-100 text-blue-700">거래량 급증</span>
-              <span v-if="report.score.target_upside_clipped" class="badge bg-amber-100 text-amber-700">목표가 200%+ 클리핑</span>
+              <p class="text-4xl font-extrabold leading-none text-slate-950 tabular-nums">{{ latestPrice }}원</p>
+              <p class="text-sm font-bold text-slate-500 tabular-nums">{{ latestTradeDateText }}</p>
+              <p class="text-sm font-extrabold tabular-nums" :class="dailyChangeClass">{{ dailyChangeSummaryText }}</p>
+              <!-- 주도주: 전일대비 로 오른쪽 (signal 필드에서 판단) -->
+              <span v-if="isLeader" class="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-bold text-white break-keep">주도주</span>
+              <!-- key_reason 파싱 배지 순서대로 -->
+              <template v-for="tag in keyReasonBadges" :key="tag.label">
+                <span
+                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold break-keep"
+                  :class="tag.type === 'rs'
+                    ? 'bg-teal-50 text-teal-700 ring-1 ring-teal-200'
+                    : tag.type === 'signal'
+                    ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+                    : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'"
+                >{{ tag.label }}</span>
+              </template>
+              <span v-if="report.stock.low_liquidity_flag" class="badge bg-amber-100 text-amber-700 break-keep">유동성 주의</span>
+              <span v-if="report.score.fail_safe_flag" class="badge bg-red-100 text-red-700 break-keep">Fail-safe</span>
+              <span v-if="report.score.target_upside_clipped" class="badge bg-amber-100 text-amber-700 break-keep">목표가 200%+ 클리핑</span>
             </div>
           </div>
           <div class="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
             <RouterLink
               :to="{ name: 'stock-community', params: { ticker: report.stock.ticker } }"
-              class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-[#12b8a6] px-5 text-base font-extrabold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-[#009e8e] md:flex-none"
+              class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-[#12b8a6] px-5 text-base font-extrabold text-white shadow-lg shadow-mint/15 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-mint/90 active:scale-[0.97] md:flex-none"
             >
               <MessageCircle :size="20" />
               토론방
             </RouterLink>
             <button
-              class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border px-5 text-base font-extrabold transition md:flex-none"
-              :class="watchlistSaved ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-700'"
+              class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border px-5 text-base font-extrabold transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.97] md:flex-none"
+              :class="watchlistSaved ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-slate-200 bg-white text-slate-700 hover:border-mint/30 hover:text-mint'"
               type="button"
               :disabled="watchlistLoading"
               @click="toggleWatchlist"
@@ -81,7 +92,7 @@
                 </div>
               </div>
               <div class="mt-4">
-                <span class="rounded-full bg-emerald-50 px-3.5 py-1 text-sm font-extrabold text-emerald-700">
+                <span class="rounded-full bg-mint/10 px-3.5 py-1 text-sm font-extrabold text-mint">
                   {{ report.score.verdict }}
                 </span>
               </div>
@@ -96,29 +107,29 @@
             <!-- Right Side: Report Highlights & Cautions -->
             <div class="flex flex-col justify-between">
               <div>
-                <span class="text-2xs font-extrabold uppercase tracking-widest text-[#009e8e]">AlphaPick Report</span>
-                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[#172033]">
+                <span class="text-2xs font-extrabold uppercase tracking-widest text-mint">AlphaPick Report</span>
+                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[#172033] break-keep text-balance">
                   {{ reportTitle }}
                 </h2>
-                <p class="mt-1.5 text-sm font-bold text-slate-500">
+                <p class="mt-1.5 text-sm font-bold text-slate-500 break-keep text-pretty">
                   {{ reportSubtitle }}
                 </p>
               </div>
 
               <div class="mt-4 grid md:grid-cols-2 gap-6">
                 <div>
-                  <span class="text-xs font-extrabold text-emerald-700 block mb-2">핵심 근거</span>
+                  <span class="text-xs font-extrabold text-mint block mb-2 break-keep">핵심 근거</span>
                   <ul class="space-y-2">
-                    <li v-for="item in decisionHighlights" :key="item" class="flex items-start gap-2 text-sm font-bold text-slate-700">
+                    <li v-for="item in decisionHighlights" :key="item" class="flex items-start gap-2 text-sm font-semibold text-slate-700 break-keep text-pretty">
                       <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#12b8a6]"></span>
                       <span>{{ item }}</span>
                     </li>
                   </ul>
                 </div>
                 <div>
-                  <span class="text-xs font-extrabold text-amber-700 block mb-2">주의 요인</span>
+                  <span class="text-xs font-extrabold text-amber-700 block mb-2 break-keep">주의 요인</span>
                   <ul class="space-y-2">
-                    <li v-for="item in riskHighlights" :key="item" class="flex items-start gap-2 text-sm font-bold text-slate-700">
+                    <li v-for="item in riskHighlights" :key="item" class="flex items-start gap-2 text-sm font-semibold text-slate-700 break-keep text-pretty">
                       <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"></span>
                       <span>{{ item }}</span>
                     </li>
@@ -127,7 +138,7 @@
               </div>
             </div>
           </div>
-          <div v-if="summaryMetricText" class="bg-slate-50/70 px-5 py-3 text-sm font-bold leading-6 text-slate-500 md:px-6">
+          <div v-if="summaryMetricText" class="bg-slate-50/70 px-5 py-3 text-sm font-semibold leading-6 text-slate-500 break-keep text-pretty md:px-6">
             {{ summaryMetricText }}
           </div>
         </section>
@@ -182,7 +193,7 @@
             >
               <div class="flex items-center justify-between gap-2">
                 <span class="text-sm font-extrabold text-slate-800">주도주 모멘텀</span>
-                <span class="text-xl font-extrabold text-emerald-600 tabular-nums">
+                <span class="text-xl font-extrabold text-mint tabular-nums">
                   {{ formatScore(report.score.area_scores.leadershipMomentum) }}
                 </span>
               </div>
@@ -191,7 +202,7 @@
               </p>
               <div class="mt-3.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div
-                  class="h-full bg-emerald-500 rounded-full"
+                  class="h-full bg-mint rounded-full"
                   :style="{ width: `${scorePercent(report.score.area_scores.leadershipMomentum)}%` }"
                 ></div>
               </div>
@@ -266,7 +277,7 @@
                 </span>
               </div>
               <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                최근 뉴스 및 공시의 긍정/부정 감성을 계량화하여 투자 심리를 측정합니다.
+                최근 뉴스의 긍정/부정 감성을 계량화하여 투자 심리를 측정합니다.
               </p>
               <div class="mt-3.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div
@@ -286,20 +297,20 @@
               <div v-show="openLayers.newsSentiment" class="mt-3 pt-3 border-t border-dashed border-slate-200 flex flex-col gap-2" @click.stop>
                 <div v-if="report.score.news && report.score.news.length > 0" class="flex flex-col gap-2">
                   <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
-                    <span>긍정 뉴스/공시</span>
+                    <span>긍정 뉴스</span>
                     <b class="text-slate-900">{{ countNewsSentiment(report.score.news || [], 'positive') }}건</b>
                   </div>
                   <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
-                    <span>중립 뉴스/공시</span>
+                    <span>중립 뉴스</span>
                     <b class="text-slate-900">{{ countNewsSentiment(report.score.news || [], 'neutral') }}건</b>
                   </div>
                   <div class="flex items-center justify-between text-xs text-slate-600 font-bold">
-                    <span>부정 뉴스/공시</span>
+                    <span>부정 뉴스</span>
                     <b class="text-slate-900">{{ countNewsSentiment(report.score.news || [], 'negative') }}건</b>
                   </div>
                 </div>
                 <div v-else class="text-xs text-slate-400 font-bold py-1">
-                  분석된 뉴스/공시 데이터가 없습니다.
+                  분석된 뉴스 데이터가 없습니다.
                 </div>
               </div>
             </div>
@@ -430,8 +441,8 @@
                 {{ aiError }}
               </div>
               <div v-else-if="aiComment" class="grid gap-3 p-5">
-                <div class="rounded-lg bg-emerald-50/50 p-4">
-                  <p class="text-xs font-extrabold text-emerald-700">긍정 요인</p>
+                <div class="rounded-lg bg-mint/5 p-4">
+                  <p class="text-xs font-extrabold text-mint">긍정 요인</p>
                   <p class="mt-1.5 text-sm font-bold leading-normal text-slate-800">{{ aiComment.positive }}</p>
                 </div>
                 <div class="rounded-lg bg-amber-50/50 p-4">
@@ -499,10 +510,26 @@
 
           <!-- 4. NEWS & DISCLOSURES PANEL -->
           <div v-show="currentTab === 'news'" class="space-y-6">
-            <section class="panel overflow-hidden">
+            <div v-if="newsLoading" class="panel p-8 text-center text-sm font-bold text-slate-500">
+              뉴스·공시를 불러오고 AI 감성을 분석하는 중입니다...
+            </div>
+            <div v-else-if="newsError" class="panel p-8 text-center text-sm font-bold text-rose-500">
+              {{ newsError }}
+            </div>
+            <section v-else class="panel overflow-hidden">
               <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
                 <div>
-                  <h2 class="text-xl font-bold text-[#172033]">뉴스·공시</h2>
+                  <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-[#172033]">뉴스·공시</h2>
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-2xs font-extrabold text-slate-600 shadow-sm transition hover:border-[#12b8a6] hover:text-[#12b8a6] active:bg-slate-50"
+                      @click="loadNewsPayload(true)"
+                    >
+                      <RefreshCw class="h-3 w-3" :class="newsLoading ? 'animate-spin' : ''" />
+                      <span>새로고침</span>
+                    </button>
+                  </div>
                   <p class="mt-1 text-xs font-bold text-slate-400">감성 점수는 뉴스만 반영하고, 공시는 참고 목록으로 제공합니다.</p>
                 </div>
                 <div class="rounded-lg px-4 py-3 text-right" :class="sentimentSummary.className">
@@ -515,7 +542,7 @@
               <div class="px-5 pt-5">
                 <div class="flex h-3 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    class="h-full bg-emerald-500 transition-all duration-300"
+                    class="h-full bg-mint transition-all duration-300"
                     :style="{ width: `${sentimentShare(sentimentSummary.positive)}%` }"
                     title="긍정"
                   ></div>
@@ -534,9 +561,9 @@
 
               <!-- Grid of Counts -->
               <div class="grid gap-3 p-5 md:grid-cols-3">
-                <div class="rounded-lg bg-emerald-50 p-4">
-                  <p class="text-xs font-extrabold text-emerald-700">긍정</p>
-                  <p class="mt-1 text-2xl font-extrabold text-emerald-700">{{ sentimentSummary.positive }}건</p>
+                <div class="rounded-lg bg-mint/10 p-4">
+                  <p class="text-xs font-extrabold text-mint">긍정</p>
+                  <p class="mt-1 text-2xl font-extrabold text-mint">{{ sentimentSummary.positive }}건</p>
                 </div>
                 <div class="rounded-lg bg-slate-100 p-4">
                   <p class="text-xs font-extrabold text-slate-600">중립</p>
@@ -596,12 +623,12 @@
                           :href="item.url"
                           target="_blank"
                           rel="noreferrer"
-                          class="mt-2 inline-flex text-xs font-extrabold text-emerald-600"
+                          class="mt-2 inline-flex text-xs font-extrabold text-mint"
                         >
                           원문 보기 ↗
                         </a>
                       </div>
-                      <span class="shrink-0 rounded-full px-3 py-1 text-xs font-extrabold" :class="sentimentBadgeClass(item.sentiment)">
+                      <span v-if="item.sentiment" class="shrink-0 rounded-full px-3 py-1 text-xs font-extrabold" :class="sentimentBadgeClass(item.sentiment)">
                         {{ sentimentLabel(item.sentiment) }}
                       </span>
                     </div>
@@ -622,9 +649,9 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, reactive, ref } from "vue";
+import { computed, defineComponent, h, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import { Heart, MessageCircle } from "@lucide/vue";
+import { Heart, MessageCircle, RefreshCw } from "@lucide/vue";
 
 import { api, unwrapList } from "../api/client";
 import StockChart from "../components/StockChart.vue";
@@ -647,6 +674,9 @@ const watchlistLoading = ref(false);
 const aiComment = ref(null);
 const aiLoading = ref(false);
 const aiError = ref("");
+const newsPayload = ref(null);
+const newsLoading = ref(false);
+const newsError = ref("");
 const componentThreshold = 70;
 
 const currentTab = ref("overview");
@@ -740,7 +770,7 @@ const riskHighlights = computed(() => {
 
 const verdictBadgeClass = computed(() => {
   const score = Number(report.value?.score?.total_score || 0);
-  if (score >= 70) return "bg-emerald-100 text-emerald-700";
+  if (score >= 70) return "bg-mint/10 text-mint";
   if (score >= 50) return "bg-amber-100 text-amber-700";
   return "bg-rose-100 text-rose-700";
 });
@@ -795,6 +825,61 @@ const dailyChangeClass = computed(() => {
   if (value < 0) return "text-blue-600";
   return "text-slate-500";
 });
+
+const isLeader = computed(() => {
+  const signal = report.value?.score?.signal || "";
+  const reason = report.value?.score?.key_reason || report.value?.score?.reason || "";
+  return /주도주/.test(signal) || /주도주/.test(reason);
+});
+
+// key_reason 텍스트 파싱 + volume_surge_flag fallback + 가격 시리즈 52주 신고가 근접 fallback
+const keyReasonBadges = computed(() => {
+  const score = report.value?.score || {};
+  const reasonText = score.key_reason || score.reason || "";
+
+  // key_reason 분리 파싱
+  const rawTags = reasonText
+    ? reasonText.split("·").map((s) => {
+        const t = s.trim();
+        if (!t) return null;
+        if (/^RS\s*\d+/i.test(t)) return { label: t, type: "rs" };
+        if (/52주|\uc2e0고가|신저가|돌파|급등|급락|급증|이탈/.test(t)) return { label: t, type: "signal" };
+        return { label: t, type: "default" };
+      }).filter(Boolean)
+    : [];
+
+  // volume_surge_flag 이 true인데 텍스트에 거래량 태그가 없으면 추가
+  const hasVolumeTag = rawTags.some((t) => /거래량/.test(t.label));
+  if (score.volume_surge_flag && !hasVolumeTag) {
+    rawTags.push({ label: "거래량 급증", type: "signal" });
+  }
+
+  // 가격 시리즈에서 52주 신고가 근접 직접 계산 (key_reason에 없을 때 fallback)
+  const has52wTag = rawTags.some((t) => /52주/.test(t.label));
+  if (!has52wTag) {
+    const prices = report.value?.priceSeries || [];
+    const closes = prices.map((p) => Number(p.close_price || 0)).filter(Boolean);
+    if (closes.length >= 20) {
+      const max52w = Math.max(...closes);
+      const latest = closes.at(-1);
+      if (latest && max52w && latest >= max52w * 0.97) {
+        const badge = { label: latest >= max52w * 0.999 ? "52주 신고가" : "52주 신고가 근접", type: "signal" };
+        rawTags.push(badge);
+      }
+    }
+  }
+
+  // 고정 순서: RS → 52주 → 거래량 → 나머지
+  function tagOrder(tag) {
+    if (tag.type === "rs") return 0;
+    if (/52주/.test(tag.label)) return 1;
+    if (/거래량/.test(tag.label)) return 2;
+    return 3;
+  }
+  return [...rawTags].sort((a, b) => tagOrder(a) - tagOrder(b));
+});
+
+const is52wHigh = computed(() => keyReasonBadges.value.some((t) => /52주/.test(t.label)));
 
 const chartReturnText = computed(() => {
   const periodReturn = chartReturn.value;
@@ -934,7 +1019,7 @@ const gaugeDashArray = computed(() => {
 });
 
 const newsItems = computed(() => {
-  const score = report.value?.score || {};
+  const score = newsPayload.value || report.value?.score || {};
   const news = (score.news || []).map((item) => normalizeNewsItem(item, "뉴스"));
   const disclosures = (score.disclosures || []).map((item) => normalizeNewsItem(item, "공시"));
   const rows = [...news, ...disclosures].filter((item) => item.title);
@@ -997,7 +1082,7 @@ const sentimentSummary = computed(() => {
   const winner = winners.length === 1 ? winners[0] : "neutral";
   const label = sentimentLabel(winner);
   const className = {
-    positive: "bg-emerald-50 text-emerald-700",
+    positive: "bg-mint/10 text-mint",
     neutral: "bg-slate-100 text-slate-700",
     negative: "bg-rose-50 text-rose-700",
   }[winner];
@@ -1125,13 +1210,16 @@ function quadrantStyle(type) {
 
 function normalizeNewsItem(item, type) {
   const title = item.title || item.headline || "";
-  const sentiment = normalizeSentiment(item.sentiment || item.tone, title);
+  const isDisclosure = (item.type || type) === "공시";
+  const sentiment = isDisclosure ? null : normalizeSentiment(item.sentiment || item.tone, title);
   return {
     type: item.type || type,
     title,
     sentiment,
     date: formatNewsDate(item.publishedAt || item.date || report.value?.score?.base_date),
-    reason: type === "뉴스" ? item.summary || item.reason || sentimentReason(sentiment, title) : item.reason || item.summary || sentimentReason(sentiment, title),
+    reason: isDisclosure
+      ? item.summary || item.reason || ""
+      : type === "뉴스" ? item.summary || item.reason || sentimentReason(sentiment, title) : item.reason || item.summary || sentimentReason(sentiment, title),
     url: item.url || "",
     source: item.source || "",
     eventType: item.eventType || "",
@@ -1175,7 +1263,7 @@ function sentimentShare(count) {
 
 function sentimentBadgeClass(sentiment) {
   return {
-    positive: "bg-emerald-100 text-emerald-700",
+    positive: "bg-mint/10 text-mint",
     neutral: "bg-slate-100 text-slate-700",
     negative: "bg-rose-100 text-rose-700",
   }[sentiment] || "bg-slate-100 text-slate-700";
@@ -1207,17 +1295,32 @@ function scorePercent(value) {
 }
 
 function scoreColor(score) {
-  if (score >= 70) return "text-[#009e8e]";
+  if (score >= 70) return "text-mint";
   if (score >= 50) return "text-amber-600";
   return "text-rose-500";
+}
+
+function fmtTradeValue(rawValue) {
+  // 이미 "16860억" 형태로 오는 경우 숫자 + 단위로 파싱 후 재포맷
+  const str = String(rawValue || "");
+  const eokMatch = str.match(/^([\d,]+)억$/);
+  if (eokMatch) {
+    const eok = Number(eokMatch[1].replace(/,/g, ""));
+    if (eok >= 10000) return `${(eok / 10000).toFixed(1)}조`;
+    if (eok >= 1000) return `${eok.toLocaleString("ko-KR")}억`;
+    return `${eok}억`;
+  }
+  // 이미 조/만 단위면 그대로
+  return str;
 }
 
 function summaryMetricTextFor(metric) {
   if (!metric) return "";
   if (typeof metric === "string") return metric;
   const label = metric.label || metric.name || "";
-  const value = metric.value ?? metric.score ?? "";
+  let value = metric.value ?? metric.score ?? "";
   if (!label && !value) return "";
+  if (label === "평균 거래대금") value = fmtTradeValue(value);
   return label ? `${label}: ${value}` : `${value}`;
 }
 
@@ -1237,6 +1340,32 @@ async function loadAiComment() {
     aiLoading.value = false;
   }
 }
+
+async function loadNewsPayload(force = false) {
+  if (!force && (newsPayload.value || newsLoading.value)) return;
+  newsLoading.value = true;
+  newsError.value = "";
+  try {
+    const url = `/stocks/${props.ticker}/news/` + (force ? "?refresh=true" : "");
+    const response = await api.get(url);
+    newsPayload.value = response.data;
+    if (report.value?.score) {
+      report.value.score.news = response.data.news || [];
+      report.value.score.disclosures = response.data.disclosures || [];
+      if (report.value.score.area_scores) {
+        report.value.score.area_scores.newsSentiment = response.data.newsSentiment;
+      }
+    }
+  } catch (err) {
+    newsError.value = "뉴스·공시 데이터를 불러오지 못했습니다.";
+  } finally {
+    newsLoading.value = false;
+  }
+}
+
+watch(currentTab, (tab) => {
+  if (tab === "news") loadNewsPayload();
+});
 
 async function loadWatchlistStatus() {
   if (!auth.isAuthenticated) return;
@@ -1291,16 +1420,16 @@ const IndicatorSection = defineComponent({
                   index,
                 },
               },
-              class: "flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-white p-4 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50/50",
+              class: "flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-white p-4 transition hover:-translate-y-0.5 hover:border-mint/30 hover:bg-mint/5",
             }, () => [
               h("div", { class: "min-w-0" }, [
                 h("p", { class: "font-extrabold text-slate-800" }, item.name || item.label || item.title || "지표"),
                 h("p", { class: "mt-1 text-sm font-bold leading-6 text-slate-500" }, item.description || item.reason || ""),
-                h("p", { class: "mt-1 text-xs font-extrabold text-emerald-600" }, "계산 상세 보기 →"),
+                h("p", { class: "mt-1 text-xs font-extrabold text-mint" }, "계산 상세 보기 →"),
               ]),
               h("div", { class: "shrink-0 text-right" }, [
                 h("p", { class: "text-lg font-extrabold text-slate-950" }, item.value),
-                h("p", { class: "text-sm font-bold text-emerald-600" }, item.status),
+                h("p", { class: "text-sm font-bold text-mint" }, item.status),
               ]),
             ]),
           ),

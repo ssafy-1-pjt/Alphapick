@@ -29,6 +29,25 @@ from stocks.models import (
 from stocks.services import ensure_portfolio_run
 
 
+def _fmt_trade_value(won: float) -> str:
+    """원화 거래대금을 읽기 쉬운 한국어 단위로 포맷."""
+    if not won or won <= 0:
+        return "0원"
+    JO = 1_000_000_000_000   # 1조
+    EO = 100_000_000          # 1억
+    MAN = 10_000              # 1만
+    if won >= JO:
+        val = won / JO
+        return f"{val:.1f}조"
+    if won >= EO:
+        val = int(won / EO)
+        return f"{val:,}억"
+    if won >= MAN:
+        val = int(won / MAN)
+        return f"{val:,}만"
+    return f"{int(won):,}원"
+
+
 KOSPI_CORP_LIST_URL = "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download&marketType=stockMkt"
 WISE_REPORT_URL = "https://navercomp.wisereport.co.kr/v2/company/c1010001.aspx"
 WISE_REPORT_AJAX_URL = "https://navercomp.wisereport.co.kr/v2/company/ajax/cF1001.aspx"
@@ -806,7 +825,7 @@ class Command(BaseCommand):
                     {"label": "RS 등급", "value": score["rs_rank"], "tone": "good" if score["rs_rank"] >= 70 else "neutral"},
                     {"label": "3개월 수익률", "value": f"{item.metrics['return_63']:.1f}%", "tone": "good" if item.metrics["return_63"] > 0 else "bad"},
                     {"label": "RSI", "value": f"{item.metrics['rsi']:.1f}", "tone": "neutral"},
-                    {"label": "평균 거래대금", "value": f"{item.metrics['avg_trading_value_20'] / 100000000:.0f}억", "tone": "good" if not item.metrics["low_liquidity"] else "bad"},
+                    {"label": "평균 거래대금", "value": _fmt_trade_value(item.metrics['avg_trading_value_20']), "tone": "good" if not item.metrics["low_liquidity"] else "bad"},
                 ],
                 "timing_cards": [
                     {"title": "추세 필터", "score": round(item.metrics["hurst"] * 100, 1), "description": "허스트 지수로 가격 흐름이 추세장인지 판단합니다."},

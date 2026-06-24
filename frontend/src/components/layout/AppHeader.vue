@@ -1,72 +1,51 @@
 <template>
   <Transition name="toast">
-    <div v-if="logoutNotice" class="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm font-black text-emerald-800 shadow-lg">
-      <CircleCheck :size="19" class="text-emerald-600" />
+    <div v-if="logoutNotice" class="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-lg border border-[#b9efe7] bg-white px-4 py-3 text-sm font-black text-[#0b8f83] shadow-lg">
+      <CircleCheck :size="19" class="text-[#12b8a6]" />
       로그아웃되었습니다.
     </div>
   </Transition>
-  <header class="z-30 border-b border-slate-200 bg-white/95 backdrop-blur lg:fixed lg:inset-y-0 lg:left-0 lg:w-[220px] lg:border-b-0 lg:border-r lg:border-white/10 lg:bg-[#0b2454] lg:text-white">
-    <div class="flex min-h-16 items-center justify-between gap-4 px-4 py-3 lg:min-h-full lg:flex-col lg:items-stretch lg:px-4 lg:py-7">
-      <RouterLink to="/" class="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-950 lg:text-white">
+  <header class="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-[#0b2454]/95 text-white backdrop-blur">
+    <div class="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-4 px-4">
+      <RouterLink to="/" class="flex shrink-0 items-center gap-2 text-xl font-extrabold tracking-tight text-white" aria-label="AlphaPick 홈으로 이동">
         <img class="h-9 w-9 rounded-lg object-cover shadow-lg shadow-cyan-950/20" src="/alphapick-icon.png" alt="AlphaPick 로고" />
         AlphaPick
       </RouterLink>
 
-      <nav class="mobile-nav flex items-center gap-1 overflow-x-auto lg:mt-7 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-2 lg:overflow-visible">
-        <template v-for="item in primaryNav" :key="item.label">
-          <RouterLink class="side-nav-link" exact-active-class="side-nav-link-active" :to="item.to">
-            <component :is="item.icon" :size="19" />
-            <span>{{ item.label }}</span>
-          </RouterLink>
-        </template>
+      <div class="ml-auto flex items-center gap-2">
+        <nav class="flex items-center gap-1 overflow-x-auto" aria-label="주요 메뉴">
+          <template v-for="item in primaryNav" :key="item.label">
+            <RouterLink class="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold text-[#d8e8f6] transition hover:bg-white/10 hover:text-white" exact-active-class="bg-[#12b8a6] text-white hover:bg-[#12b8a6] hover:text-white" :to="item.to">
+              <component :is="item.icon" :size="19" />
+              <span>{{ item.label }}</span>
+              <span v-if="item.to === '/notifications' && unreadNotifications" class="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-black leading-none text-white">
+                {{ unreadNotifications > 99 ? "99+" : unreadNotifications }}
+              </span>
+            </RouterLink>
+          </template>
+        </nav>
 
-        <div class="hidden h-px bg-white/10 lg:my-3 lg:block"></div>
-
-        <template v-if="authStore.isAuthenticated">
-          <RouterLink class="side-nav-link" exact-active-class="side-nav-link-active" to="/community/following">
-            <Users :size="19" />
-            <span>팔로잉</span>
-          </RouterLink>
-          <RouterLink class="side-nav-link relative" exact-active-class="side-nav-link-active" to="/notifications">
-            <Bell :size="19" />
-            <span>알림</span>
-            <span v-if="unreadNotifications" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[11px] font-black leading-none text-white">
-              {{ unreadNotifications > 99 ? "99+" : unreadNotifications }}
-            </span>
-          </RouterLink>
-          <button class="side-nav-link text-left lg:mt-auto" type="button" @click="handleLogout">
-            <LogOut :size="19" />
-            <span>로그아웃</span>
+        <div class="relative">
+          <button class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10" type="button" :aria-expanded="accountMenuOpen" aria-label="계정 메뉴" @click="accountMenuOpen = !accountMenuOpen">
+            <img v-if="profileImageUrl" :src="profileImageUrl" class="h-8 w-8 rounded-full object-cover" alt="프로필 사진" />
+            <span v-else-if="authStore.isAuthenticated" class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-sm font-black">{{ profileInitial }}</span>
+            <User v-else :size="20" />
           </button>
-        </template>
-        <template v-else>
-          <RouterLink class="side-nav-link" exact-active-class="side-nav-link-active" to="/login">
-            <LogIn :size="19" />
-            <span>로그인</span>
-          </RouterLink>
-          <RouterLink class="side-nav-link" exact-active-class="side-nav-link-active" to="/register">
-            <UserPlus :size="19" />
-            <span>회원가입</span>
-          </RouterLink>
-        </template>
-      </nav>
 
-      <RouterLink v-if="authStore.isAuthenticated" class="hidden rounded-lg border border-white/10 bg-white/5 p-4 transition hover:border-[#35c5b8]/70 hover:bg-white/10 lg:block" to="/mypage">
-        <div class="flex items-center gap-3">
-          <img v-if="profileImageUrl" :src="profileImageUrl" class="h-11 w-11 rounded-full border border-white/20 object-cover" alt="프로필 사진" />
-          <div v-else class="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 font-black">
-            {{ profileInitial }}
+          <div v-if="accountMenuOpen" class="absolute right-0 mt-3 w-56 rounded-lg border border-slate-200 bg-white p-3 text-slate-900 shadow-xl">
+            <div class="mb-3 border-b border-slate-100 pb-3">
+              <p class="text-sm font-extrabold">{{ authStore.isAuthenticated ? authStore.user?.nickname || authStore.user?.username : "방문자" }}</p>
+              <p class="mt-1 text-xs font-bold text-slate-500">{{ authStore.isAuthenticated ? "로그인 중" : "로그인 전" }}</p>
+            </div>
+            <template v-if="authStore.isAuthenticated">
+              <RouterLink class="block rounded-md px-3 py-2 text-sm font-bold hover:bg-slate-50" to="/mypage" @click="accountMenuOpen = false">내 정보</RouterLink>
+              <button class="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm font-bold text-rose-600 hover:bg-rose-50" type="button" @click="handleLogout">로그아웃</button>
+            </template>
+            <template v-else>
+              <RouterLink class="block rounded-md px-3 py-2 text-center text-sm font-bold text-slate-700 hover:bg-slate-50" to="/login" @click="accountMenuOpen = false">로그인</RouterLink>
+              <RouterLink class="mt-2 block rounded-md bg-[#12b8a6] px-3 py-2 text-center text-sm font-bold text-white hover:bg-[#0fa696]" to="/register" @click="accountMenuOpen = false">회원가입</RouterLink>
+            </template>
           </div>
-          <div>
-            <p class="text-sm font-bold">{{ authStore.user?.nickname || authStore.user?.username }}</p>
-            <p class="mt-1 text-xs font-bold text-[#ddf7f2]">내 정보 · 프로필 수정</p>
-          </div>
-        </div>
-      </RouterLink>
-      <div v-else class="hidden rounded-lg border border-white/10 bg-white/5 p-4 lg:block">
-        <div class="flex items-center gap-3">
-          <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/15"><User :size="21" /></div>
-          <div><p class="text-sm font-bold">방문자</p><p class="mt-1 text-xs font-bold text-[#ddf7f2]">로그인 후 프로필을 설정하세요</p></div>
         </div>
       </div>
     </div>
@@ -80,14 +59,8 @@ import {
   Heart,
   Bell,
   CircleCheck,
-  LogIn,
-  LogOut,
   Newspaper,
-  PieChart,
-  Search,
   User,
-  UserPlus,
-  Users,
 } from "@lucide/vue";
 import { useAuthStore } from "../../stores/auth";
 import { api } from "../../api/client";
@@ -96,6 +69,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 const unreadNotifications = ref(0);
 const logoutNotice = ref(false);
+const accountMenuOpen = ref(false);
 const profileInitial = computed(() => (authStore.user?.nickname || authStore.user?.username || "U").slice(0, 1).toUpperCase());
 const profileImageUrl = computed(() => {
   const url = authStore.user?.profile_image_url;
@@ -106,10 +80,13 @@ let notificationTimer = null;
 let logoutNoticeTimer = null;
 
 const primaryNav = computed(() => [
-  { to: "/portfolio", label: "오늘의 포트폴리오", icon: PieChart },
-  { to: "/stocks", label: "종목 검색", icon: Search },
-  ...(authStore.isAuthenticated ? [{ to: "/watchlist", label: "관심 종목", icon: Heart }] : []),
-  { to: "/community", label: "커뮤니티", icon: Newspaper },
+  ...(authStore.isAuthenticated
+    ? [
+        { to: "/watchlist", label: "관심 종목", icon: Heart },
+        { to: "/community", label: "커뮤니티", icon: Newspaper },
+        { to: "/notifications", label: "알림", icon: Bell },
+      ]
+    : []),
 ]);
 
 async function loadUnreadNotifications() {
@@ -145,6 +122,7 @@ onBeforeUnmount(() => {
 });
 
 function handleLogout() {
+  accountMenuOpen.value = false;
   authStore.logout();
   unreadNotifications.value = 0;
   logoutNotice.value = true;

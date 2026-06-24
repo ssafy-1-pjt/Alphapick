@@ -14,7 +14,6 @@ from xml.etree import ElementTree
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Max
 from django.utils import timezone
 
 from stocks.models import ScoreSnapshot, Stock
@@ -93,7 +92,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--tickers", nargs="*", help="갱신할 종목코드 목록. 예: 005930 005930.KS")
         parser.add_argument("--market", choices=["KOSPI", "KOSDAQ"], help="시장 기준 갱신")
-        parser.add_argument("--limit", type=int, default=20, help="갱신할 종목 수")
+        parser.add_argument("--limit", type=int, help="갱신할 종목 수. 생략하면 대상 전체를 갱신합니다.")
         parser.add_argument("--display", type=int, default=30, help="종목당 네이버 뉴스 요청 건수")
         parser.add_argument("--days", type=int, default=30, help="뉴스와 감성 점수에 반영할 최근 N일")
         parser.add_argument("--disclosure-days", type=int, default=365, help="화면에 저장할 공시 조회 기간")
@@ -139,8 +138,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"{stock.ticker} {stock.name}: API 오류 - {exc}"))
                 continue
 
+            aggregate = self.aggregate_sentiment(analyzed)
             if analyzed or disclosures or options["force"]:
-                aggregate = self.aggregate_sentiment(analyzed)
                 score.news = [self.serialize_article(item) for item in analyzed[:30]]
                 score.disclosures = [self.serialize_article(item) for item in self.compact_disclosures(disclosures)[:100]]
                 
@@ -180,15 +179,16 @@ class Command(BaseCommand):
                 normalized.update(self.normalize_ticker_candidates(ticker))
             queryset = queryset.filter(ticker__in=normalized)
         elif options.get("market"):
-            queryset = queryset.filter(market=options["market"])[: options["limit"]]
+            queryset = queryset.filter(market=options["market"])
         else:
-            base_date = ScoreSnapshot.objects.aggregate(value=Max("base_date"))["value"]
-            tickers = (
-                ScoreSnapshot.objects.filter(base_date=base_date)
-                .order_by("-total_score")
-                .values_list("stock_id", flat=True)[: options["limit"]]
+            scored_tickers = (
+                ScoreSnapshot.objects
+                .values_list("stock_id", flat=True)
+                .distinct()
             )
-            queryset = queryset.filter(ticker__in=list(tickers))
+            queryset = queryset.filter(ticker__in=list(scored_tickers))
+        if options.get("limit"):
+            queryset = queryset[: options["limit"]]
         return list(queryset)
 
     def normalize_ticker_candidates(self, value):
@@ -376,8 +376,8 @@ class Command(BaseCommand):
         if use_ai and settings.GMS_API_KEY:
             analyzed = self.analyze_article_with_ai(stock, article)
             if analyzed:
-                return {**article, **analyzed}
-        return {**article, **self.analyze_article_locally(stock, article)}
+                return {**article, **analyzed, "analyzer": "ai"}
+        return {**article, **self.analyze_article_locally(stock, article), "analyzer": "local"}
 
     def analyze_article_with_ai(self, stock, article):
         prompt = {
@@ -595,6 +595,7 @@ class Command(BaseCommand):
             "articleScore": item.get("article_score", 0),
             "reason": item["reason"],
             "keyFact": item.get("key_fact", ""),
+            "analyzer": item.get("analyzer", "local"),
         }
 
     def compact_disclosures(self, rows):

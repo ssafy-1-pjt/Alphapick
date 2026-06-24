@@ -1,4 +1,6 @@
 from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
+from django.conf import settings
+from django.core.management import call_command
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -74,6 +76,34 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
         stock = self.get_object()
         prices = stock.prices.order_by("-date")[: int(request.query_params.get("limit", PRICE_HISTORY_DAYS))]
         return Response(PriceDailySerializer(reversed(list(prices)), many=True).data)
+
+    @action(detail=True, methods=["get"], url_path="news")
+    def news(self, request, ticker=None):
+        stock = self.get_object()
+        score = stock.scores.order_by("-base_date").first()
+        if not score:
+            return Response({"news": [], "disclosures": [], "newsSentiment": None})
+
+        force_refresh = request.query_params.get("refresh") == "true"
+        needs_ai = not any(item.get("analyzer") == "ai" for item in (score.news or [])) or len(score.news or []) == 10 or force_refresh
+        if needs_ai:
+            call_command(
+                "refresh_news_sentiment",
+                tickers=[stock.ticker],
+                display=50,
+                days=30,
+                disclosure_days=365,
+                ai_limit=3,
+                sleep=0,
+                include_dart=bool(settings.DART_API_KEY),
+            )
+            score = stock.scores.order_by("-base_date").first()
+
+        return Response({
+            "news": score.news or [],
+            "disclosures": score.disclosures or [],
+            "newsSentiment": (score.area_scores or {}).get("newsSentiment"),
+        })
 
     @action(detail=True, methods=["post"], url_path="ai-comment")
     def ai_comment(self, request, ticker=None):

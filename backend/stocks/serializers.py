@@ -235,8 +235,6 @@ class ScoreSnapshotSerializer(serializers.ModelSerializer):
             "can_slim",
             "technical_indicators",
             "financial_indicators",
-            "news",
-            "disclosures",
         )
 
 

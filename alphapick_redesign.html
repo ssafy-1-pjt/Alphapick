@@ -26,7 +26,7 @@
     --sub:#677084;
     --faint:#9AA3B5;
     --radius:14px;
-    --shadow:0 1px 2px rgba(16,22,38,.04), 0 8px 24px -12px rgba(16,22,38,.10);
+    --shadow:0 12px 30px rgba(11, 36, 84, 0.05), 0 4px 12px rgba(11, 36, 84, 0.02);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -77,12 +77,26 @@
   .price-delta{font-size:13px; font-weight:700; color:var(--down);}
   .price-meta{font-size:12px; color:var(--faint);}
   .topbar-actions{display:flex; gap:8px; flex:none;}
-  .btn{border:1px solid var(--line); background:#fff; padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; white-space:nowrap;}
-  .btn:hover{border-color:#CBD3E1;}
+  .btn{
+    border:1px solid var(--line); background:#fff; padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; white-space:nowrap;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn:hover{
+    border-color:#CBD3E1;
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(11, 36, 84, 0.05);
+  }
+  .btn:active{
+    transform: translateY(0) scale(0.97);
+  }
   .btn.icon{padding:8px 10px;}
-  .btn.primary{background:var(--teal); border-color:var(--teal); color:#fff;}
-  .btn.primary:hover{background:var(--teal-dark); border-color:var(--teal-dark);}
+  .btn.primary{background:var(--teal); border-color:var(--teal); color:#fff; box-shadow: 0 4px 12px rgba(18, 184, 166, 0.12);}
+  .btn.primary:hover{background:#0ea5e9; border-color:#0ea5e9; box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);}
   .btn.ghost{background:#fff;}
+
+  .break-keep { word-break: keep-all; }
+  .text-pretty { text-wrap: pretty; }
+  .text-balance { text-wrap: balance; }
 
   .content{padding:22px 28px 60px; max-width:1180px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
@@ -290,27 +304,27 @@
               <span>/ 100점</span>
             </div>
           </div>
-          <div class="verdict-badge">추천 후보</div>
-          <div class="verdict-sub">강한 주도주 · 컨센서스 없음</div>
-          <div class="discount-note">리스크 제어 −6% · 시장 방향성 −3% 할인 반영</div>
+          <div class="verdict-badge break-keep">추천 후보</div>
+          <div class="verdict-sub break-keep">강한 주도주 · 컨센서스 없음</div>
+          <div class="discount-note break-keep text-pretty">리스크 제어 −6% · 시장 방향성 −3% 할인 반영</div>
         </div>
 
         <div class="hero-right">
-          <h2>브이엠 종합 리포트</h2>
+          <h2 class="break-keep text-balance">브이엠 종합 리포트</h2>
           <div class="hero-cols">
             <div>
-              <span class="col-label">핵심 근거</span>
+              <span class="col-label break-keep">핵심 근거</span>
               <ul class="bullets good">
-                <li><span class="bdot"></span>RS 97 · 52주 신고가 근접 · 3개월 모멘텀 110.7%</li>
-                <li><span class="bdot"></span>가격 흐름은 정배열 추세로 분류됩니다</li>
-                <li><span class="bdot"></span>거래량은 평균권 거래량 상태입니다</li>
+                <li class="break-keep text-pretty"><span class="bdot"></span>RS 97 · 52주 신고가 근접 · 3개월 모멘텀 110.7%</li>
+                <li class="break-keep text-pretty"><span class="bdot"></span>가격 흐름은 정배열 추세로 분류됩니다</li>
+                <li class="break-keep text-pretty"><span class="bdot"></span>거래량은 평균권 거래량 상태입니다</li>
               </ul>
             </div>
             <div>
-              <span class="col-label">주의 요인</span>
+              <span class="col-label break-keep">주의 요인</span>
               <ul class="bullets warn">
-                <li><span class="bdot"></span>리스크 제어 점수가 35.2점으로 낮습니다</li>
-                <li><span class="bdot"></span>목표가·PER·ROE는 컨센서스 데이터가 없어 미산정 상태입니다</li>
+                <li class="break-keep text-pretty"><span class="bdot"></span>리스크 제어 점수가 35.2점으로 낮습니다</li>
+                <li class="break-keep text-pretty"><span class="bdot"></span>목표가·PER·ROE는 컨센서스 데이터가 없어 미산정 상태입니다</li>
               </ul>
             </div>
           </div>

@@ -17,7 +17,7 @@
         <p class="mt-3 max-w-4xl text-lg font-bold leading-8 text-slate-700">{{ detail.summary }}</p>
         <div class="mt-5 flex flex-wrap gap-2">
           <span class="badge bg-slate-950 text-white">{{ sectionLabel }}</span>
-          <span class="badge bg-emerald-50 text-emerald-700">현재값 {{ displayValue }}</span>
+          <span class="badge bg-mint/10 text-mint">현재값 {{ displayValue }}</span>
           <span v-if="detail.status" class="badge bg-blue-50 text-blue-700">{{ detail.status }}</span>
         </div>
       </div>
@@ -27,7 +27,7 @@
           <div class="panel p-5">
             <p class="text-sm font-extrabold text-slate-500">현재 리포트 값</p>
             <p class="mt-3 text-5xl font-extrabold tabular-nums" :class="scoreColor(numericValue)">{{ displayValue }}</p>
-            <p v-if="detail.status" class="mt-2 text-sm font-extrabold text-emerald-600">{{ detail.status }}</p>
+            <p v-if="detail.status" class="mt-2 text-sm font-extrabold text-mint">{{ detail.status }}</p>
           </div>
 
           <div class="panel p-5">
@@ -62,7 +62,7 @@
           <DetailBlock title="4. 현재 종목 해석" :body="detail.interpretation" />
 
           <section class="panel p-5">
-            <h2 class="border-l-4 border-emerald-500 pl-3 text-2xl font-extrabold text-slate-950">관련 계산 로그</h2>
+            <h2 class="border-l-4 border-mint pl-3 text-2xl font-extrabold text-slate-950">관련 계산 로그</h2>
             <div class="mt-5 space-y-2">
               <p
                 v-for="log in relatedLogs"
@@ -311,7 +311,7 @@ function keywordFor(title, section) {
 function scoreColor(value) {
   if (value === null || value === undefined) return "text-slate-950";
   if (props.section === "technical" && value < 0) return "text-rose-500";
-  if (value >= 80) return "text-emerald-600";
+  if (value >= 80) return "text-mint";
   if (value >= 55) return "text-amber-500";
   return "text-rose-500";
 }
@@ -331,7 +331,7 @@ const DetailBlock = defineComponent({
   setup(blockProps) {
     return () =>
       h("section", { class: "panel p-5" }, [
-        h("h2", { class: "border-l-4 border-emerald-500 pl-3 text-2xl font-extrabold text-slate-950" }, blockProps.title),
+        h("h2", { class: "border-l-4 border-mint pl-3 text-2xl font-extrabold text-slate-950" }, blockProps.title),
         h("p", { class: "mt-4 whitespace-pre-line text-base font-bold leading-8 text-slate-700" }, blockProps.body),
       ]);
   },

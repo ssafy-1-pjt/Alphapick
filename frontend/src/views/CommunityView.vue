@@ -1,15 +1,15 @@
 <template>
   <section class="page-shell py-8">
-    <div v-if="isStockRoom" class="rounded-lg border border-emerald-200 bg-emerald-50 p-6 md:p-7">
+    <div v-if="isStockRoom" class="rounded-lg border border-[#b9efe7] bg-[#e8fbf7] p-6 md:p-7">
       <div class="flex flex-col justify-between gap-5 md:flex-row md:items-center">
         <div class="flex items-start gap-4">
-          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-mint text-white">
             <MessageCircle :size="30" />
           </span>
           <div>
-            <p class="text-sm font-black text-emerald-700">종목 토론방</p>
-            <h1 class="mt-1 text-3xl font-black text-slate-950 md:text-4xl">{{ stock?.name || "종목" }} 토론방</h1>
-            <p class="mt-2 text-slate-600">실적, 수급, 주가 흐름과 투자 판단을 나누는 공간입니다.</p>
+            <p class="text-sm font-black text-mint break-keep">종목 토론방</p>
+            <h1 class="mt-1 text-3xl font-black text-slate-950 break-keep text-balance md:text-4xl">{{ stock?.name || "종목" }} 토론방</h1>
+            <p class="mt-2 text-slate-600 break-keep text-pretty">실적, 수급, 주가 흐름과 투자 판단을 나누는 공간입니다.</p>
           </div>
         </div>
         <RouterLink class="btn-secondary shrink-0" :to="{ name: 'stock-report', params: { ticker } }">
@@ -19,11 +19,11 @@
       </div>
     </div>
 
-    <div v-else class="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <div v-else class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        <p class="text-sm font-black text-emerald-600">투자자 커뮤니티</p>
-        <h1 class="text-3xl font-black text-slate-950">종목별 투자 의견을 확인하세요</h1>
-        <p class="mt-2 max-w-3xl leading-7 text-slate-600">게시글을 열어 해당 종목 토론방으로 이동할 수 있습니다.</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-mint break-keep">COMMUNITY</p>
+        <h1 class="mt-1 text-3xl font-black text-slate-950 break-keep text-balance">투자자 커뮤니티</h1>
+        <p class="mt-2 text-slate-600 break-keep text-pretty">종목별 투자 의견을 확인하고 토론방으로 이동하세요.</p>
       </div>
       <RouterLink class="btn-primary" to="/stocks">토론할 종목 찾기</RouterLink>
     </div>
@@ -36,7 +36,7 @@
     </div>
 
     <main class="mt-7 min-w-0 space-y-4">
-      <form v-if="isStockRoom && auth.isAuthenticated" class="panel border-emerald-200 p-5" @submit.prevent="createPost">
+      <form v-if="isStockRoom && auth.isAuthenticated" class="panel border-mint/30 p-5" @submit.prevent="createPost">
         <h2 class="text-lg font-black text-slate-950">{{ stock?.name }} 의견 작성</h2>
         <input v-model.trim="postForm.title" class="field mt-3" maxlength="120" placeholder="제목" required />
         <textarea v-model.trim="postForm.content" class="field mt-3 min-h-24 resize-y" placeholder="종목에 대한 의견과 근거를 작성해 주세요." required />
@@ -59,36 +59,26 @@
           <div class="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
               <div class="flex flex-wrap items-center gap-2 text-sm font-bold">
-                <RouterLink class="text-emerald-700 hover:underline" :to="{ name: 'community-user-activity', params: { userId: post.author.id } }">
+                <RouterLink class="text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: post.author.id } }">
                   {{ post.author.display_name }}
                 </RouterLink>
                 <span class="text-slate-400">{{ formatDate(post.created_at) }}</span>
-                <RouterLink v-if="!isStockRoom && post.stock" class="badge bg-emerald-50 text-emerald-700" :to="{ name: 'stock-community', params: { ticker: post.stock } }">
+                <RouterLink v-if="!isStockRoom && post.stock" class="badge bg-mint/10 text-mint" :to="{ name: 'stock-community', params: { ticker: post.stock } }">
                   {{ post.stock_name || post.stock }} 토론방
                 </RouterLink>
               </div>
-              <h2 class="mt-1 text-xl font-black leading-7 text-slate-950">{{ post.title }}</h2>
+              <h2 class="mt-1 text-xl font-black leading-7 text-slate-950 break-keep text-balance">{{ post.title }}</h2>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <button
-                v-if="auth.isAuthenticated && !post.author.is_me"
-                class="inline-flex min-h-11 items-center justify-center rounded-lg px-5 text-sm font-black shadow-sm transition"
-                :class="post.author.is_following ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100' : 'bg-emerald-600 text-white hover:bg-emerald-700'"
-                type="button"
-                :disabled="followLoadingId === post.author.id"
-                @click="toggleFollow(post.author)"
-              >
-                {{ post.author.is_following ? "팔로우 중" : "팔로우" }}
-              </button>
               <button v-if="post.can_edit" class="btn-ghost min-h-0 px-2 py-1 text-sm text-red-600 hover:bg-red-50" type="button" @click="deletePost(post)">
                 <Trash2 :size="16" />
                 삭제
               </button>
             </div>
           </div>
-          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{{ post.content }}</p>
+          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700 break-keep text-pretty">{{ post.content }}</p>
           <div class="mt-4 flex items-center gap-3">
-            <button class="btn-secondary min-h-0 px-3 py-1.5 text-sm" :class="post.liked_by_me ? 'border-rose-200 bg-rose-50 text-rose-600' : ''" type="button" :disabled="likeLoadingIds[post.id]" @click="toggleLike(post)">
+            <button class="btn-secondary min-h-0 px-3 py-1.5 text-sm active:scale-[0.97]" :class="post.liked_by_me ? 'border-rose-200 bg-rose-50 text-rose-600' : ''" type="button" :disabled="likeLoadingIds[post.id]" @click="toggleLike(post)">
               <Heart :size="17" :fill="post.liked_by_me ? 'currentColor' : 'none'" /> 좋아요 {{ post.likes_count }}
             </button>
             <span class="inline-flex items-center gap-1 text-sm font-bold text-slate-500"><MessageCircle :size="16" /> 댓글 {{ post.comments_count }}</span>
@@ -98,7 +88,7 @@
         <div class="border-t border-slate-100 bg-slate-50/70 p-4 sm:p-5">
           <div class="flex items-center justify-between gap-3">
             <h3 class="text-sm font-black text-slate-950">댓글</h3>
-            <button v-if="post.comments.length > commentPreviewCount" class="text-xs font-black text-emerald-700" type="button" @click="post.commentsExpanded = !post.commentsExpanded">
+            <button v-if="post.comments.length > commentPreviewCount" class="text-xs font-black text-mint" type="button" @click="post.commentsExpanded = !post.commentsExpanded">
               {{ post.commentsExpanded ? "댓글 접기" : `댓글 전체 보기 (${post.comments.length})` }}
             </button>
           </div>
@@ -106,28 +96,28 @@
             <div :id="`comment-${comment.id}`" v-for="comment in visibleComments(post)" :key="comment.id" class="scroll-mt-6 rounded-lg border border-slate-200 bg-white px-3 py-2">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <RouterLink class="text-xs font-black text-emerald-700 hover:underline" :to="{ name: 'community-user-activity', params: { userId: comment.author.id } }">{{ comment.author.display_name }}</RouterLink>
+                  <RouterLink class="text-xs font-black text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: comment.author.id } }">{{ comment.author.display_name }}</RouterLink>
                   <span class="ml-1 text-xs text-slate-400">{{ formatDate(comment.created_at) }}</span>
-                  <p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700">{{ comment.content }}</p>
+                  <p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ comment.content }}</p>
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
-                  <button v-if="auth.isAuthenticated" class="btn-ghost min-h-0 px-2 py-1 text-xs text-emerald-700" type="button" @click="replyingToId = replyingToId === comment.id ? null : comment.id">답글</button>
+                  <button v-if="auth.isAuthenticated" class="btn-ghost min-h-0 px-2 py-1 text-xs text-mint" type="button" @click="replyingToId = replyingToId === comment.id ? null : comment.id">답글</button>
                   <button v-if="comment.can_delete" class="btn-ghost min-h-0 px-2 py-1 text-xs text-red-600" type="button" @click="deleteComment(post, comment)">삭제</button>
                 </div>
               </div>
-              <div v-for="reply in comment.replies || []" :id="`comment-${reply.id}`" :key="reply.id" class="ml-5 mt-2 border-l-2 border-emerald-200 pl-3">
-                <div class="flex items-start justify-between gap-3"><div><RouterLink class="text-xs font-black text-emerald-700 hover:underline" :to="{ name: 'community-user-activity', params: { userId: reply.author.id } }">{{ reply.author.display_name }}</RouterLink><span class="ml-1 text-xs text-slate-400">{{ formatDate(reply.created_at) }}</span><p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700">{{ reply.content }}</p></div><button v-if="reply.can_delete" class="btn-ghost min-h-0 px-2 py-1 text-xs text-red-600" type="button" @click="deleteComment(post, reply)">삭제</button></div>
+              <div v-for="reply in comment.replies || []" :id="`comment-${reply.id}`" :key="reply.id" class="ml-5 mt-2 border-l-2 border-mint/20 pl-3">
+                <div class="flex items-start justify-between gap-3"><div><RouterLink class="text-xs font-black text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: reply.author.id } }">{{ reply.author.display_name }}</RouterLink><span class="ml-1 text-xs text-slate-400">{{ formatDate(reply.created_at) }}</span><p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ reply.content }}</p></div><button v-if="reply.can_delete" class="btn-ghost min-h-0 px-2 py-1 text-xs text-red-600" type="button" @click="deleteComment(post, reply)">삭제</button></div>
               </div>
               <form v-if="auth.isAuthenticated && replyingToId === comment.id" class="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row" @submit.prevent="createReply(post, comment)">
                 <input v-model.trim="replyDrafts[comment.id]" class="field min-h-0 py-2 text-sm" placeholder="답글을 입력하세요" maxlength="600" />
-                <button class="btn-secondary min-h-0 shrink-0 px-3 py-2 text-sm" type="submit">답글 등록</button>
+                <button class="btn-secondary min-h-0 shrink-0 px-3 py-2 text-sm active:scale-[0.97]" type="submit">답글 등록</button>
               </form>
             </div>
             <p v-if="!post.comments.length" class="rounded-lg bg-white px-3 py-2 text-sm text-slate-500">아직 댓글이 없습니다.</p>
           </div>
           <form v-if="auth.isAuthenticated" class="mt-3 flex flex-col gap-2 sm:flex-row" @submit.prevent="createComment(post)">
             <input v-model.trim="commentDrafts[post.id]" class="field min-h-0 py-2 text-sm" placeholder="댓글을 입력하세요" maxlength="600" />
-            <button class="btn-primary min-h-0 shrink-0 px-3 py-2 text-sm" type="submit"><Send :size="16" /> 등록</button>
+            <button class="btn-primary min-h-0 shrink-0 px-3 py-2 text-sm active:scale-[0.97]" type="submit"><Send :size="16" /> 등록</button>
           </form>
         </div>
       </article>
@@ -190,6 +180,7 @@ async function loadPosts() {
   posts.value = unwrapList(data).map((post) => ({ ...post, comments: post.comments || [], commentsExpanded: false }));
 }
 async function loadCommunity() {
+  if (!auth.isAuthenticated) return requireLogin();
   isLoading.value = true;
   error.value = "";
   try {
