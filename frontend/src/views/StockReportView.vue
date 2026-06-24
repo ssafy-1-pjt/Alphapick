@@ -372,21 +372,37 @@
         <main class="space-y-6">
           <!-- 1. OVERVIEW (종합 진단) PANEL -->
           <div v-show="currentTab === 'overview'" class="space-y-6">
-            <div class="grid gap-6 md:grid-cols-[320px_1fr]">
+            <div class="grid gap-6 md:grid-cols-[360px_1fr]">
               <div class="panel p-5 bg-white">
-                <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-mint">Decision Framework</p>
+                  <h4 class="mt-1 text-lg font-extrabold text-slate-900">V4 종합 판단</h4>
+                  <p class="mt-1 text-xs font-bold leading-5 text-slate-400">세 축을 기하평균으로 결합하고, 밸류 조정과 위험 신호를 마지막에 적용합니다.</p>
+                </div>
+
+                <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
+                  <p class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400">현재 매매 판단</p>
+                  <p class="mt-1 text-sm font-extrabold text-slate-900">{{ report.score.action_label }}</p>
+                  <p class="mt-1 text-xs font-semibold leading-5 text-slate-500">{{ report.score.area_scores?.v4?.actionReason || "과열·추세 훼손·데이터 이상을 우선 적용합니다." }}</p>
+                </div>
+
+                <div class="mt-4 space-y-3.5">
                   <div>
-                    <h4 class="text-sm font-extrabold text-slate-800">V4 종합 판단 구조</h4>
-                    <p class="mt-1 text-[11px] font-bold text-slate-400">고정 70점 컷오프 대신 세 축과 위험 신호를 함께 봅니다.</p>
+                    <div class="flex items-baseline justify-between gap-3"><p class="text-xs font-extrabold text-emerald-800">회사 품질 <span class="text-emerald-600">Q</span><span class="ml-1 font-bold text-emerald-600/70">40%</span></p><strong class="text-2xl font-extrabold tabular-nums text-emerald-700">{{ formatScore(report.score.company_score) }}</strong></div>
+                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-emerald-100"><div class="h-full rounded-full bg-emerald-500" :style="{ width: `${scorePercent(report.score.company_score)}%` }"></div></div>
+                    <p class="mt-1.5 text-[11px] font-semibold text-slate-500">성장성 · 수익성 · 재무 안정성</p>
                   </div>
-                  <span class="shrink-0 rounded-full bg-slate-900 px-2 py-0.5 text-2xs font-extrabold text-white">{{ report.score.action_label }}</span>
+                  <div>
+                    <div class="flex items-baseline justify-between gap-3"><p class="text-xs font-extrabold text-blue-800">시장 검증 <span class="text-blue-600">M</span><span class="ml-1 font-bold text-blue-600/70">25%</span></p><strong class="text-2xl font-extrabold tabular-nums text-blue-700">{{ formatScore(report.score.market_validation_score) }}</strong></div>
+                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-blue-100"><div class="h-full rounded-full bg-blue-500" :style="{ width: `${scorePercent(report.score.market_validation_score)}%` }"></div></div>
+                    <p class="mt-1.5 text-[11px] font-semibold text-slate-500">상대강도 · 하방 변동성 · MDD 방어</p>
+                  </div>
+                  <div>
+                    <div class="flex items-baseline justify-between gap-3"><p class="text-xs font-extrabold text-amber-800">매수 타이밍 <span class="text-amber-600">T</span><span class="ml-1 font-bold text-amber-600/70">35%</span></p><strong class="text-2xl font-extrabold tabular-nums text-amber-700">{{ formatScore(report.score.timing_score) }}</strong></div>
+                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-amber-100"><div class="h-full rounded-full bg-amber-500" :style="{ width: `${scorePercent(report.score.timing_score)}%` }"></div></div>
+                    <p class="mt-1.5 text-[11px] font-semibold text-slate-500">추세 · 수급 · 돌파 · 단기 과열</p>
+                  </div>
                 </div>
-                <div class="mt-4 space-y-3">
-                  <div class="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3"><div class="flex items-center justify-between text-xs font-extrabold text-emerald-800"><span>회사 품질 Q · 40%</span><strong class="text-base tabular-nums">{{ formatScore(report.score.company_score) }}</strong></div><p class="mt-1 text-[11px] font-bold leading-5 text-emerald-700">성장성·수익성·재무 안정성</p></div>
-                  <div class="rounded-lg border border-blue-100 bg-blue-50/60 p-3"><div class="flex items-center justify-between text-xs font-extrabold text-blue-800"><span>시장 검증 M · 25%</span><strong class="text-base tabular-nums">{{ formatScore(report.score.market_validation_score) }}</strong></div><p class="mt-1 text-[11px] font-bold leading-5 text-blue-700">상대강도·하방 변동성·MDD 방어</p></div>
-                  <div class="rounded-lg border border-amber-100 bg-amber-50/70 p-3"><div class="flex items-center justify-between text-xs font-extrabold text-amber-800"><span>매수 타이밍 T · 35%</span><strong class="text-base tabular-nums">{{ formatScore(report.score.timing_score) }}</strong></div><p class="mt-1 text-[11px] font-bold leading-5 text-amber-700">추세·수급·돌파·단기 과열</p></div>
-                </div>
-                <p class="mt-3 text-xs font-bold leading-5 text-slate-600">{{ report.score.area_scores?.v4?.actionReason || "세 축을 결합한 뒤 과열·추세 훼손·데이터 이상을 우선 적용합니다." }}</p>
               </div>
 
               <!-- Previous 2-axis matrix is hidden because V4 uses three axes. -->

@@ -86,6 +86,28 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
         prices = stock.prices.order_by("-date")[: int(request.query_params.get("limit", PRICE_HISTORY_DAYS))]
         return Response(PriceDailySerializer(reversed(list(prices)), many=True).data)
 
+    @action(detail=True, methods=["get"], url_path="news")
+    def news(self, request, ticker=None):
+        """Return the latest stored Naver news and OpenDART disclosures.
+
+        Collection runs in the batch command so opening a report never blocks
+        on external APIs. The optional refresh query remains UI-compatible and
+        simply returns the freshest data currently stored by that batch.
+        """
+        stock = self.get_object()
+        snapshot = stock.scores.order_by("-base_date").first()
+        if snapshot is None:
+            return Response({"news": [], "disclosures": [], "newsSentiment": None, "baseDate": None})
+        area_scores = snapshot.area_scores if isinstance(snapshot.area_scores, dict) else {}
+        return Response(
+            {
+                "news": snapshot.news or [],
+                "disclosures": snapshot.disclosures or [],
+                "newsSentiment": area_scores.get("newsSentiment"),
+                "baseDate": snapshot.base_date.isoformat(),
+            }
+        )
+
     @action(detail=True, methods=["post"], url_path="ai-comment")
     def ai_comment(self, request, ticker=None):
         risk_type = normalize_risk_type(request.data.get("risk_type") or request.query_params.get("risk_type"))

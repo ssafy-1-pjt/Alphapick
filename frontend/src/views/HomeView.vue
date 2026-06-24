@@ -94,7 +94,6 @@
                   <col class="w-[82px]" />
                   <col class="w-[82px]" />
                   <col class="w-[90px]" />
-                  <col class="w-[120px]" />
                   <col />
                 </colgroup>
                 <thead class="bg-gradient-to-b from-slate-50 to-white text-xs font-bold text-slate-500">
@@ -108,7 +107,6 @@
                     <th class="px-3 py-3 break-keep text-balance">회사 Q</th>
                     <th class="px-3 py-3 break-keep text-balance">시장 M</th>
                     <th class="px-3 py-3 break-keep text-balance">타이밍 T</th>
-                    <th class="px-3 py-3 break-keep text-balance">매매 신호</th>
                     <th class="px-5 py-3 break-keep text-balance">핵심 사유</th>
                   </tr>
                 </thead>
@@ -137,7 +135,6 @@
                     <td class="px-3 py-4 font-extrabold tabular-nums text-emerald-700">{{ formatScore(stock.company_score) }}</td>
                     <td class="px-3 py-4 font-extrabold tabular-nums text-blue-700">{{ formatScore(stock.market_validation_score) }}</td>
                     <td class="px-3 py-4 font-extrabold tabular-nums text-amber-700">{{ formatScore(stock.timing_score) }}</td>
-                    <td class="px-3 py-4"><span class="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 break-keep">{{ stock.action_label }}</span></td>
                     <td class="px-5 py-4">
                       <div v-if="stock.key_reason || stock.reason" class="flex flex-wrap gap-1.5">
                         <span
