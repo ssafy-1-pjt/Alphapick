@@ -7,18 +7,16 @@ import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import MyPageView from "../views/MyPageView.vue";
 import NotificationsView from "../views/NotificationsView.vue";
-import PortfolioView from "../views/PortfolioView.vue";
 import ProfileEditView from "../views/ProfileEditView.vue";
 import RegisterView from "../views/RegisterView.vue";
 import StockMetricDetailView from "../views/StockMetricDetailView.vue";
 import StockReportView from "../views/StockReportView.vue";
-import StockSearchView from "../views/StockSearchView.vue";
 import WatchlistView from "../views/WatchlistView.vue";
 
 const routes = [
   { path: "/", name: "home", component: HomeView },
-  { path: "/portfolio", name: "portfolio", component: PortfolioView },
-  { path: "/stocks", name: "stocks", component: StockSearchView },
+  { path: "/portfolio", redirect: "/" },
+  { path: "/stocks", redirect: "/" },
   { path: "/stocks/:ticker/community", name: "stock-community", component: CommunityView, props: true },
   { path: "/stocks/:ticker", name: "stock-report", component: StockReportView, props: true },
   { path: "/stocks/:ticker/details/:section/:index", name: "metric-detail", component: StockMetricDetailView, props: true },

@@ -2,9 +2,9 @@
   <section class="page-shell py-8">
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        <p class="text-sm font-black text-emerald-600">My Watchlist</p>
-        <h1 class="mt-1 text-3xl font-black text-slate-950">관심 종목</h1>
-        <p class="mt-2 text-slate-600">폴더와 검색으로 저장한 종목을 빠르게 관리하세요.</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-mint break-keep">MY WATCHLIST</p>
+        <h1 class="mt-1 text-3xl font-black text-slate-950 break-keep text-balance">관심 종목</h1>
+        <p class="mt-2 text-slate-600 break-keep text-pretty">폴더와 검색으로 저장한 종목을 빠르게 관리하세요.</p>
       </div>
       <RouterLink class="btn-secondary" to="/stocks">종목 찾기</RouterLink>
     </div>
@@ -19,10 +19,10 @@
           <form class="flex gap-2" @submit.prevent="createFolder"><input v-model.trim="folderName" class="field min-h-0 py-2" maxlength="40" placeholder="새 폴더 이름" /><button class="btn-primary min-h-0 shrink-0 px-4 py-2" type="submit">폴더 추가</button></form>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-          <button class="rounded-full px-3 py-1.5 text-sm font-black" :class="activeFolder === 'all' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'" type="button" @click="activeFolder = 'all'">전체 {{ entries.length }}</button>
-          <button class="rounded-full px-3 py-1.5 text-sm font-black" :class="activeFolder === 'none' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'" type="button" @click="activeFolder = 'none'">미분류 {{ uncategorizedCount }}</button>
+          <button class="rounded-full px-3 py-1.5 text-sm font-black" :class="activeFolder === 'all' ? 'bg-mint text-white' : 'bg-slate-100 text-slate-600'" type="button" @click="activeFolder = 'all'">전체 {{ entries.length }}</button>
+          <button class="rounded-full px-3 py-1.5 text-sm font-black" :class="activeFolder === 'none' ? 'bg-mint text-white' : 'bg-slate-100 text-slate-600'" type="button" @click="activeFolder = 'none'">미분류 {{ uncategorizedCount }}</button>
           <div v-for="folder in folders" :key="folder.id" class="inline-flex items-center rounded-full bg-slate-100 pr-1 text-sm font-black text-slate-600">
-            <button class="px-3 py-1.5" :class="activeFolder === String(folder.id) ? 'text-emerald-700' : ''" type="button" @click="activeFolder = String(folder.id)">{{ folder.name }} {{ folder.item_count }}</button>
+            <button class="px-3 py-1.5" :class="activeFolder === String(folder.id) ? 'text-mint' : ''" type="button" @click="activeFolder = String(folder.id)">{{ folder.name }} {{ folder.item_count }}</button>
             <button class="rounded-full px-2 py-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" type="button" :aria-label="`${folder.name} 폴더 삭제`" @click="deleteFolder(folder)">×</button>
           </div>
         </div>
@@ -30,8 +30,8 @@
 
       <div v-if="filteredEntries.length" class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <article v-for="entry in filteredEntries" :key="entry.id" class="panel p-5">
-          <div class="flex items-start justify-between gap-3"><div><RouterLink class="text-xl font-black text-slate-950 hover:text-emerald-700" :to="{ name: 'stock-report', params: { ticker: entry.stock.ticker } }">{{ entry.stock.name }}</RouterLink><p class="mt-1 text-sm text-slate-500">{{ entry.stock.ticker }} · {{ entry.stock.sector }}</p></div><button class="btn-ghost min-h-0 px-2 py-1 text-sm text-red-600" type="button" @click="remove(entry)">삭제</button></div>
-          <div class="mt-4 flex items-end justify-between gap-3"><div><p class="text-xs font-bold text-slate-400">종합 점수</p><p class="mt-1 text-3xl font-black text-emerald-700">{{ entry.stock.latest_score ?? "-" }}</p></div><p class="text-right text-sm font-bold text-slate-600">{{ entry.stock.key_reason || entry.stock.reason || "분석 데이터 준비 중" }}</p></div>
+          <div class="flex items-start justify-between gap-3"><div><RouterLink class="text-xl font-black text-slate-950 hover:text-mint" :to="{ name: 'stock-report', params: { ticker: entry.stock.ticker } }">{{ entry.stock.name }}</RouterLink><p class="mt-1 text-sm text-slate-500">{{ entry.stock.ticker }} · {{ entry.stock.sector }}</p></div><button class="btn-ghost min-h-0 px-2 py-1 text-sm text-red-600" type="button" @click="remove(entry)">삭제</button></div>
+          <div class="mt-4 flex items-end justify-between gap-3"><div><p class="text-xs font-bold text-slate-400">종합 점수</p><p class="mt-1 text-3xl font-black text-mint">{{ entry.stock.latest_score ?? "-" }}</p></div><p class="text-right text-sm font-bold text-slate-600">{{ entry.stock.key_reason || entry.stock.reason || "분석 데이터 준비 중" }}</p></div>
           <label class="mt-4 block text-xs font-black text-slate-500">폴더<select class="field mt-1 min-h-0 py-2 text-sm" :value="entry.folder?.id || ''" @change="moveEntry(entry, $event.target.value)"><option value="">미분류</option><option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select></label>
         </article>
       </div>

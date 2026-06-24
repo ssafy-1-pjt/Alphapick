@@ -17,7 +17,7 @@
         <p class="mt-3 max-w-4xl text-lg font-bold leading-8 text-slate-700">{{ detail.summary }}</p>
         <div class="mt-5 flex flex-wrap gap-2">
           <span class="badge bg-slate-950 text-white">{{ sectionLabel }}</span>
-          <span class="badge bg-emerald-50 text-emerald-700">현재값 {{ displayValue }}</span>
+          <span class="badge bg-mint/10 text-mint">현재값 {{ displayValue }}</span>
           <span v-if="detail.status" class="badge bg-blue-50 text-blue-700">{{ detail.status }}</span>
         </div>
       </div>
@@ -27,15 +27,14 @@
           <div class="panel p-5">
             <p class="text-sm font-extrabold text-slate-500">현재 리포트 값</p>
             <p class="mt-3 text-5xl font-extrabold tabular-nums" :class="scoreColor(numericValue)">{{ displayValue }}</p>
-            <p v-if="detail.status" class="mt-2 text-sm font-extrabold text-emerald-600">{{ detail.status }}</p>
+            <p v-if="detail.status" class="mt-2 text-sm font-extrabold text-mint">{{ detail.status }}</p>
           </div>
 
           <div class="panel p-5">
             <p class="text-sm font-extrabold text-slate-500">최종 종합 점수</p>
             <p class="mt-3 text-5xl font-extrabold text-slate-950">{{ formatScore(report.score.total_score) }}</p>
             <p class="mt-2 text-sm font-bold leading-6 text-slate-500">
-              회사 점수 {{ formatScore(report.score.company_score) }}점과 타이밍 점수 {{ formatScore(report.score.timing_score) }}점을 합산한 뒤,
-              과열·낙폭·시장 방향 리스크를 할인합니다.
+              회사 품질(Q)·시장 검증(M)·매수 타이밍(T)을 기하평균으로 결합한 뒤 밸류에이션을 조정합니다.
             </p>
           </div>
 
@@ -43,6 +42,10 @@
             <div class="flex justify-between p-4">
               <span class="text-slate-500">회사 점수</span>
               <strong>{{ formatScore(report.score.company_score) }}</strong>
+            </div>
+            <div class="flex justify-between p-4">
+              <span class="text-slate-500">시장 검증 점수</span>
+              <strong>{{ formatScore(report.score.market_validation_score) }}</strong>
             </div>
             <div class="flex justify-between p-4">
               <span class="text-slate-500">타이밍 점수</span>
@@ -62,7 +65,7 @@
           <DetailBlock title="4. 현재 종목 해석" :body="detail.interpretation" />
 
           <section class="panel p-5">
-            <h2 class="border-l-4 border-emerald-500 pl-3 text-2xl font-extrabold text-slate-950">관련 계산 로그</h2>
+            <h2 class="border-l-4 border-mint pl-3 text-2xl font-extrabold text-slate-950">관련 계산 로그</h2>
             <div class="mt-5 space-y-2">
               <p
                 v-for="log in relatedLogs"
@@ -191,23 +194,22 @@ function totalScoreItem(currentReport) {
     title: "종합 점수",
     score: score.total_score,
     status: score.verdict,
-    description: `${currentReport.stock.name}의 최종 추천 판단 점수입니다.`,
-    meaning: "종합 점수는 회사 가치와 진입 타이밍을 합산한 뒤, 과열·낙폭·시장 방향 같은 위험 요인을 반영한 리스크 조정 참고 점수입니다. 포트폴리오 편입은 종합 점수 하나가 아니라 회사 가치 70점 이상, 진입 타이밍 70점 이상을 모두 통과했는지로 판단합니다.",
+    description: `${currentReport.stock.name}의 V4 종합 투자매력도입니다.`,
+    meaning: "종합 점수는 좋은 회사인지(Q), 시장에서 검증됐는지(M), 지금 진입이 적절한지(T)를 함께 보되 하나의 고정 컷오프로 매수 여부를 결정하지 않는 참고 점수입니다.",
     calculation:
-      `1차 점수 = 회사 점수 ${formatScore(score.company_score)}점 × 45% + 타이밍 점수 ${formatScore(score.timing_score)}점 × 55%\n` +
-      `회사 점수는 가치/퀄리티, 연간 ROE 대용, EPS 가속도를 합산합니다.\n` +
-      `타이밍 점수는 주도주 모멘텀, 신고가/피벗, 수급/거래량을 합산합니다.\n` +
-      "이후 Z-Score 과열, 최대낙폭, 시장 방향, 데이터 신뢰도 조건에 따라 할인 또는 직접 감점을 적용합니다.",
-    score_impact: "종합 점수는 위험도를 보여주는 참고 점수입니다. 실제 포트폴리오 편입은 회사 가치 70점 이상, 진입 타이밍 70점 이상, 신뢰도 70점 이상, 유동성/Fail-safe 조건 통과 여부로 결정합니다.",
+      `종합 점수 = 100 × (Q/100)^0.40 × (M/100)^0.25 × (T/100)^0.35 + 밸류에이션 조정\n` +
+      `Q ${formatScore(score.company_score)}점 · M ${formatScore(score.market_validation_score)}점 · T ${formatScore(score.timing_score)}점\n` +
+      `밸류 조정 ${score.valuation_adjustment >= 0 ? "+" : ""}${formatScore(score.valuation_adjustment)}점이며, 과열·추세 훼손·거래 이상은 매매 신호 워터폴에서 우선 처리합니다.`,
+    score_impact: "Q/M/T 중 하나가 약하면 기하평균 특성상 종합 점수도 낮아집니다. 실제 행동은 종합 점수만이 아니라 매매 신호의 위험 우선 규칙을 함께 확인합니다.",
     interpretation:
-      `현재 종합 점수는 ${formatScore(score.total_score)}점이고 판정은 "${score.verdict}"입니다. ` +
-      `회사 점수는 ${formatScore(score.company_score)}점, 타이밍 점수는 ${formatScore(score.timing_score)}점, 데이터 신뢰도는 ${formatScore(score.reliability_score)}점입니다.`,
+      `현재 종합 점수는 ${formatScore(score.total_score)}점이고 매매 신호는 "${score.action_label || score.verdict}"입니다. ` +
+      `회사 품질 ${formatScore(score.company_score)}점, 시장 검증 ${formatScore(score.market_validation_score)}점, 타이밍 ${formatScore(score.timing_score)}점입니다.`,
   };
 }
 
 function defaultMeaning(title, section) {
   if (section === "total") {
-    return "종합 점수는 회사 가치와 진입 타이밍을 합친 뒤 리스크를 반영한 참고 점수입니다. 편입 기준은 회사 가치와 타이밍이 각각 70점 이상인지입니다.";
+    return "종합 점수는 회사 품질·시장 검증·매수 타이밍을 기하평균으로 결합한 참고 점수입니다. 단일 70점 컷오프가 아니라 매매 신호와 함께 해석합니다.";
   }
   if (section === "score") {
     if (title.includes("가치") || title.includes("퀄리티")) {
@@ -228,7 +230,7 @@ function defaultCalculation(title, section, currentReport) {
   const area = currentReport?.score?.area_scores || {};
   if (section === "total") {
     const score = currentReport?.score || {};
-    return `종합 점수 = 회사 점수 ${formatScore(score.company_score)}점 × 45% + 타이밍 점수 ${formatScore(score.timing_score)}점 × 55%입니다. 이후 리스크 제어, Z-Score 과열, 최대낙폭, 시장 방향, 신뢰도 조건으로 할인 또는 감점을 적용합니다.`;
+    return `종합 점수 = 100 × (회사 품질 ${formatScore(score.company_score)}/100)^0.40 × (시장 검증 ${formatScore(score.market_validation_score)}/100)^0.25 × (매수 타이밍 ${formatScore(score.timing_score)}/100)^0.35 + 밸류에이션 조정입니다.`;
   }
   if (section === "score") {
     if (title.includes("가치") || title.includes("퀄리티")) {
@@ -311,7 +313,7 @@ function keywordFor(title, section) {
 function scoreColor(value) {
   if (value === null || value === undefined) return "text-slate-950";
   if (props.section === "technical" && value < 0) return "text-rose-500";
-  if (value >= 80) return "text-emerald-600";
+  if (value >= 80) return "text-mint";
   if (value >= 55) return "text-amber-500";
   return "text-rose-500";
 }
@@ -331,7 +333,7 @@ const DetailBlock = defineComponent({
   setup(blockProps) {
     return () =>
       h("section", { class: "panel p-5" }, [
-        h("h2", { class: "border-l-4 border-emerald-500 pl-3 text-2xl font-extrabold text-slate-950" }, blockProps.title),
+        h("h2", { class: "border-l-4 border-mint pl-3 text-2xl font-extrabold text-slate-950" }, blockProps.title),
         h("p", { class: "mt-4 whitespace-pre-line text-base font-bold leading-8 text-slate-700" }, blockProps.body),
       ]);
   },

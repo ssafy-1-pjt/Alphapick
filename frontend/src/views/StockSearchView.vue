@@ -4,7 +4,7 @@
       <p class="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">Stock Universe</p>
       <h1 class="mt-2 text-4xl font-bold text-slate-950">종목 검색과 스코어 필터</h1>
       <p class="mt-3 max-w-3xl leading-7 text-slate-600">
-        포트폴리오에는 회사 가치와 진입 타이밍이 모두 70점 이상인 종목만 편입되지만, 전체 종목의 리포트와 관찰 후보도 함께 확인할 수 있습니다.
+        회사 품질, 시장 검증, 매수 타이밍을 독립적으로 확인하고 종합 투자매력도 또는 각 축 점수 기준으로 종목을 비교할 수 있습니다.
       </p>
     </div>
 
@@ -74,7 +74,7 @@
       </aside>
 
       <div>
-        <div class="panel mb-6 grid gap-3 p-4 md:grid-cols-[1fr_180px_160px]">
+        <div class="panel mb-6 grid gap-3 p-4 md:grid-cols-[1fr_180px_180px_160px]">
           <input v-model="filters.q" class="field" placeholder="종목명 또는 티커 검색" @keyup.enter="loadStocks" />
           <select v-model="filters.min_score" class="field">
             <option value="">전체 점수</option>
@@ -82,6 +82,13 @@
             <option value="80">80점 이상</option>
             <option value="70">70점 이상</option>
             <option value="60">60점 이상</option>
+          </select>
+          <select v-model="filters.sort" class="field">
+            <option value="composite">종합 점수순</option>
+            <option value="company">회사 품질순</option>
+            <option value="market">시장 검증순</option>
+            <option value="timing">매수 타이밍순</option>
+            <option value="valuation">밸류 조정순</option>
           </select>
           <button class="btn-primary" type="button" @click="loadStocks">검색</button>
         </div>
@@ -129,8 +136,14 @@
                     <span v-if="stock.low_liquidity_flag" class="badge bg-amber-100 text-amber-700">유동성 주의</span>
                     <span v-if="stock.fail_safe_flag" class="badge bg-red-100 text-red-700">Fail-safe</span>
                     <span v-if="stock.volume_surge_flag" class="badge bg-blue-100 text-blue-700">거래량 급증</span>
+                    <span class="badge bg-slate-100 text-slate-700">{{ stock.action_label }}</span>
                   </div>
                   <p class="mt-3 text-sm leading-6 text-slate-600">{{ stock.key_reason || stock.reason }}</p>
+                  <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-500">
+                    <div class="rounded-md bg-slate-50 p-2"><span class="block">회사</span><strong class="text-slate-900">{{ formatScore(stock.company_score) }}</strong></div>
+                    <div class="rounded-md bg-slate-50 p-2"><span class="block">시장</span><strong class="text-slate-900">{{ formatScore(stock.market_validation_score) }}</strong></div>
+                    <div class="rounded-md bg-slate-50 p-2"><span class="block">타이밍</span><strong class="text-slate-900">{{ formatScore(stock.timing_score) }}</strong></div>
+                  </div>
                 </div>
                 <div class="w-24 shrink-0 text-right">
                   <p class="text-sm font-bold text-slate-500">점수</p>
@@ -168,6 +181,7 @@ import { api } from "../api/client";
 const filters = reactive({
   q: "",
   min_score: "",
+  sort: "composite",
   theme_group: "",
   theme: "",
 });
@@ -215,6 +229,7 @@ function requestParams(page) {
   const params = { page };
   if (filters.q) params.q = filters.q;
   if (filters.min_score) params.min_score = filters.min_score;
+  if (filters.sort) params.sort = filters.sort;
   if (filters.theme) params.theme = filters.theme;
   if (filters.theme_group) params.theme_group = filters.theme_group;
   return params;

@@ -19,6 +19,13 @@ class StockSummarySerializer(serializers.ModelSerializer):
     rsi = serializers.SerializerMethodField()
     volume_surge_flag = serializers.SerializerMethodField()
     fail_safe_flag = serializers.SerializerMethodField()
+    company_score = serializers.SerializerMethodField()
+    market_validation_score = serializers.SerializerMethodField()
+    timing_score = serializers.SerializerMethodField()
+    valuation_adjustment = serializers.SerializerMethodField()
+    action_signal = serializers.SerializerMethodField()
+    action_label = serializers.SerializerMethodField()
+    financial_data_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Stock
@@ -43,6 +50,13 @@ class StockSummarySerializer(serializers.ModelSerializer):
             "rsi",
             "volume_surge_flag",
             "fail_safe_flag",
+            "company_score",
+            "market_validation_score",
+            "timing_score",
+            "valuation_adjustment",
+            "action_signal",
+            "action_label",
+            "financial_data_status",
         )
 
     def get_theme_links(self, obj):
@@ -116,6 +130,34 @@ class StockSummarySerializer(serializers.ModelSerializer):
     def get_fail_safe_flag(self, obj):
         score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
         return score.fail_safe_flag if score else False
+
+    def get_company_score(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return round(score.company_score, 1) if score else None
+
+    def get_market_validation_score(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return round(score.market_validation_score, 1) if score and score.market_validation_score is not None else None
+
+    def get_timing_score(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return round(score.timing_score, 1) if score else None
+
+    def get_valuation_adjustment(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return score.valuation_adjustment if score else 0
+
+    def get_action_signal(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return score.action_signal if score else "REVIEW"
+
+    def get_action_label(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return score.action_label if score else "평가 보류"
+
+    def get_financial_data_status(self, obj):
+        score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
+        return score.financial_data_status if score else "partial"
 
 
 class WatchlistFolderSerializer(serializers.ModelSerializer):
@@ -204,6 +246,13 @@ class ScoreSnapshotSerializer(serializers.ModelSerializer):
             "total_score",
             "company_score",
             "timing_score",
+            "market_validation_score",
+            "valuation_adjustment",
+            "action_signal",
+            "action_label",
+            "financial_data_status",
+            "is_investment_ineligible",
+            "red_flag_reasons",
             "reliability_score",
             "financial_health_score",
             "valuation_score",

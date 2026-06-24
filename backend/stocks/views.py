@@ -48,6 +48,8 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
         min_score = self.request.query_params.get("min_score")
         theme = self.request.query_params.get("theme")
         theme_group = self.request.query_params.get("theme_group")
+        sort = self.request.query_params.get("sort", "composite")
+        direction = self.request.query_params.get("direction", "desc")
 
         if query:
             queryset = queryset.filter(Q(name__icontains=query) | Q(ticker__icontains=query))
@@ -62,7 +64,16 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = queryset.filter(scores__base_date=F("latest_score_date"))
         if min_score:
             queryset = queryset.filter(scores__total_score__gte=float(min_score)).distinct()
-        return queryset.order_by("-scores__total_score", "name").distinct()
+        sort_fields = {
+            "composite": "total_score",
+            "company": "company_score",
+            "market": "market_validation_score",
+            "timing": "timing_score",
+            "valuation": "valuation_adjustment",
+        }
+        field = sort_fields.get(sort, "total_score")
+        prefix = "" if direction == "asc" else "-"
+        return queryset.order_by(f"{prefix}scores__{field}", "name").distinct()
 
     @action(detail=True, methods=["get"], url_path="report")
     def report(self, request, ticker=None):

@@ -5,7 +5,7 @@
 
       <div class="mt-6 flex items-center gap-5">
         <img v-if="profilePreview" :src="profilePreview" class="h-20 w-20 rounded-full border border-slate-200 object-cover" alt="프로필 사진 미리보기" />
-        <div v-else class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-2xl font-black text-emerald-700">
+        <div v-else class="flex h-20 w-20 items-center justify-center rounded-full bg-mint/10 text-2xl font-black text-mint">
           {{ (auth.user?.nickname || auth.user?.username || "U").slice(0, 1).toUpperCase() }}
         </div>
         <div class="min-w-0">

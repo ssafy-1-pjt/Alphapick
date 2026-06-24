@@ -54,14 +54,32 @@ def update_indicator_rows(rows, metric, fundamentals, target_upside, consensus_l
             display_percent_plain(metric.operating_margin),
             "양호" if metric.operating_margin is not None and metric.operating_margin >= 10 else "확인",
         ),
+        "부채비율": (
+            display_percent_plain(metric.debt_ratio),
+            "안정" if metric.debt_ratio is not None and metric.debt_ratio <= 150 else "확인",
+        ),
+        "배당수익률": (
+            display_percent_plain(metric.dividend_yield),
+            "참고" if metric.dividend_yield is not None else "자료 없음",
+        ),
+        "EPS 성장률": (
+            display_percent_plain(metric.eps_growth),
+            "성장" if metric.eps_growth is not None and metric.eps_growth > 0 else "확인",
+        ),
     }
     updated = []
+    seen = set()
     for row in rows or []:
         label = row.get("label")
         if label in values:
             value, status = values[label]
             row = {**row, "value": value, "status": status}
+            seen.add(label)
         updated.append(row)
+    for label in ("목표가", "목표가 상승여력", "PER", "PBR", "ROE", "영업이익률", "부채비율", "배당수익률", "EPS 성장률"):
+        if label not in seen:
+            value, status = values[label]
+            updated.append({"label": label, "value": value, "status": status, "description": "네이버 금융/FnGuide 기준 최신 수집값"})
     return updated
 
 
@@ -156,7 +174,8 @@ class Command(BaseCommand):
                         target_upside,
                         consensus_label,
                     )
-                    score.save(update_fields=["target_upside", "consensus", "confidence", "financial_indicators"])
+                    score.financial_data_status = "partial"
+                    score.save(update_fields=["target_upside", "consensus", "confidence", "financial_indicators", "financial_data_status"])
 
             updated += 1
             self.stdout.write(f"[{index}/{total}] updated {stock.ticker} {stock.name}")

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-fog text-ink">
     <AppHeader />
-    <main class="lg:pl-[220px]">
+    <main class="pt-16">
       <RouterView />
     </main>
   </div>

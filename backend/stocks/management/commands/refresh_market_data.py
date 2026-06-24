@@ -6,7 +6,7 @@ uses the most recent KOSPI trading day rather than blindly stamping a holiday
 or an in-progress session as today's data.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
@@ -66,4 +66,5 @@ class Command(BaseCommand):
             command_options["limit"] = options["limit"]
 
         call_command("seed_pykrx", **command_options)
+        call_command("rebuild_v4_scores", date=datetime.strptime(base_date, "%Y%m%d").strftime("%Y-%m-%d"))
         self.stdout.write(self.style.SUCCESS(f"{market} refresh completed for {base_date}."))

@@ -2,9 +2,9 @@
   <section class="page-shell py-8">
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        <p class="text-sm font-black text-emerald-600">내 활동</p>
-        <h1 class="mt-1 text-3xl font-black text-slate-950">알림</h1>
-        <p class="mt-2 text-slate-600">내 게시글과 댓글에 새로 달린 의견을 확인하세요.</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-mint break-keep">NOTIFICATIONS</p>
+        <h1 class="mt-1 text-3xl font-black text-slate-950 break-keep text-balance">알림</h1>
+        <p class="mt-2 text-slate-600 break-keep text-pretty">내 게시글과 댓글에 새로 달린 의견을 확인하세요.</p>
       </div>
       <button v-if="notifications.some((item) => !item.is_read)" class="btn-secondary" type="button" :disabled="markingAll" @click="markAllRead">
         모두 읽음 처리
@@ -19,18 +19,18 @@
         v-for="notification in notifications"
         :key="notification.id"
         class="flex w-full items-start gap-4 border-b border-slate-100 px-5 py-4 text-left transition last:border-b-0 hover:bg-slate-50"
-        :class="notification.is_read ? 'bg-white' : 'bg-emerald-50/60'"
+        :class="notification.is_read ? 'bg-white' : 'bg-mint/5'"
         type="button"
         @click="openNotification(notification)"
       >
-        <span class="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full" :class="notification.kind === 'reply' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'">
+        <span class="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full" :class="notification.kind === 'reply' ? 'bg-violet-100 text-violet-700' : 'bg-[#ddf7f2] text-mint'">
           <MessageCircle :size="19" />
         </span>
         <span class="min-w-0 flex-1">
           <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <strong class="font-black text-slate-950">{{ notification.actor.display_name }}</strong>
             <span class="text-sm text-slate-700">{{ notificationText(notification) }}</span>
-            <span v-if="!notification.is_read" class="h-2 w-2 rounded-full bg-emerald-500" aria-label="읽지 않음"></span>
+            <span v-if="!notification.is_read" class="h-2 w-2 rounded-full bg-mint" aria-label="읽지 않음"></span>
           </span>
           <span class="mt-1 block truncate text-sm font-bold text-slate-500">{{ contextText(notification) }}</span>
           <span class="mt-1 block text-xs text-slate-400">{{ formatDate(notification.created_at) }}</span>

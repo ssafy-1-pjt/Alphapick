@@ -88,12 +88,13 @@ def normalize_disclosure_sentiment(title):
 
 
 class Command(BaseCommand):
-    help = "네이버 뉴스와 선택적 OpenDART 데이터를 수집하고 AI로 종목별 뉴스 감성 점수를 갱신합니다."
+    help = "네이버 뉴스와 선택적 OpenDART 공시를 종목 리포트 참고 정보로 수집합니다."
 
     def add_arguments(self, parser):
         parser.add_argument("--tickers", nargs="*", help="갱신할 종목코드 목록. 예: 005930 005930.KS")
         parser.add_argument("--market", choices=["KOSPI", "KOSDAQ"], help="시장 기준 갱신")
         parser.add_argument("--limit", type=int, default=20, help="갱신할 종목 수")
+        parser.add_argument("--all", action="store_true", help="활성 종목 전체를 갱신합니다. API 요청이 오래 걸릴 수 있습니다.")
         parser.add_argument("--display", type=int, default=30, help="종목당 네이버 뉴스 요청 건수")
         parser.add_argument("--days", type=int, default=30, help="뉴스와 감성 점수에 반영할 최근 N일")
         parser.add_argument("--disclosure-days", type=int, default=365, help="화면에 저장할 공시 조회 기간")
@@ -148,18 +149,8 @@ class Command(BaseCommand):
                     score.area_scores = {}
                 score.area_scores["newsSentiment"] = aggregate["score"]
                 
-                # Recalculate total_score incorporating news sentiment (10% weight)
-                if aggregate["score"] is not None:
-                    base_total = score.company_score * 0.45 + score.timing_score * 0.55
-                    if base_total > 0:
-                        discount_factor = score.total_score / base_total
-                    else:
-                        discount_factor = 1.0
-                    new_base_total = base_total * 0.90 + aggregate["score"] * 0.10
-                    score.total_score = max(0.0, min(100.0, round(new_base_total * discount_factor, 1)))
-                
                 score.scoring_log = self.replace_log_entry(score.scoring_log, aggregate)
-                score.save(update_fields=["news", "disclosures", "area_scores", "total_score", "scoring_log"])
+                score.save(update_fields=["news", "disclosures", "area_scores", "scoring_log"])
                 updated += 1
 
             ns_display = f"{aggregate['score']:.1f}" if (aggregate["score"] is not None) else "None"
@@ -181,6 +172,8 @@ class Command(BaseCommand):
             queryset = queryset.filter(ticker__in=normalized)
         elif options.get("market"):
             queryset = queryset.filter(market=options["market"])[: options["limit"]]
+        elif options.get("all"):
+            queryset = queryset
         else:
             base_date = ScoreSnapshot.objects.aggregate(value=Max("base_date"))["value"]
             tickers = (
