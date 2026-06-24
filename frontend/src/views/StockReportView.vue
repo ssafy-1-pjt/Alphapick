@@ -566,10 +566,13 @@
               {{ newsError }}
             </div>
             <section v-else class="panel overflow-hidden">
-              <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-                <div>
+              <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+                <div class="min-w-0">
                   <div class="flex items-center gap-3">
                     <h2 class="text-xl font-bold text-[#172033]">뉴스·공시</h2>
+                    <span class="rounded-full px-2.5 py-1 text-2xs font-extrabold" :class="sentimentSummary.className">
+                      {{ sentimentSummary.label }} 우위
+                    </span>
                     <button
                       type="button"
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-2xs font-extrabold text-slate-600 shadow-sm transition hover:border-[#12b8a6] hover:text-[#12b8a6] active:bg-slate-50"
@@ -579,56 +582,30 @@
                       <span>새로고침</span>
                     </button>
                   </div>
-                  <p class="mt-1 text-xs font-bold text-slate-400">뉴스와 공시는 참고 정보이며 V4 종합 점수에는 직접 반영하지 않습니다.</p>
                 </div>
-                <div v-if="false">
-                <div class="rounded-lg px-4 py-3 text-right" :class="sentimentSummary.className">
-                  <p class="text-[10px] font-extrabold">뉴스 감성</p>
-                  <p class="mt-0.5 text-base font-extrabold">{{ sentimentSummary.label }} 우위</p>
-                </div>
-              </div>
-
-              <!-- Sentiment Distribution Bar -->
-              <div class="px-5 pt-5">
-                <div class="flex h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    class="h-full bg-mint transition-all duration-300"
-                    :style="{ width: `${sentimentShare(sentimentSummary.positive)}%` }"
-                    title="긍정"
-                  ></div>
-                  <div
-                    class="h-full bg-slate-300 transition-all duration-300"
-                    :style="{ width: `${sentimentShare(sentimentSummary.neutral)}%` }"
-                    title="중립"
-                  ></div>
-                  <div
-                    class="h-full bg-rose-500 transition-all duration-300"
-                    :style="{ width: `${sentimentShare(sentimentSummary.negative)}%` }"
-                    title="부정"
-                  ></div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <div class="rounded-md bg-mint/10 px-3 py-2 text-right">
+                    <p class="text-[10px] font-extrabold text-mint">긍정</p>
+                    <p class="mt-0.5 text-lg font-extrabold text-mint">{{ sentimentSummary.positive }}건</p>
+                  </div>
+                  <div class="rounded-md bg-slate-100 px-3 py-2 text-right">
+                    <p class="text-[10px] font-extrabold text-slate-600">중립</p>
+                    <p class="mt-0.5 text-lg font-extrabold text-slate-700">{{ sentimentSummary.neutral }}건</p>
+                  </div>
+                  <div class="rounded-md bg-rose-50 px-3 py-2 text-right">
+                    <p class="text-[10px] font-extrabold text-rose-700">부정</p>
+                    <p class="mt-0.5 text-lg font-extrabold text-rose-700">{{ sentimentSummary.negative }}건</p>
+                  </div>
                 </div>
               </div>
 
-              <!-- Grid of Counts -->
-              <div class="grid gap-3 p-5 md:grid-cols-3">
-                <div class="rounded-lg bg-mint/10 p-4">
-                  <p class="text-xs font-extrabold text-mint">긍정</p>
-                  <p class="mt-1 text-2xl font-extrabold text-mint">{{ sentimentSummary.positive }}건</p>
-                </div>
-                <div class="rounded-lg bg-slate-100 p-4">
-                  <p class="text-xs font-extrabold text-slate-600">중립</p>
-                  <p class="mt-1 text-2xl font-extrabold text-slate-700">{{ sentimentSummary.neutral }}건</p>
-                </div>
-                <div class="rounded-lg bg-rose-50 p-4">
-                  <p class="text-xs font-extrabold text-rose-700">부정</p>
-                  <p class="mt-1 text-2xl font-extrabold text-rose-700">{{ sentimentSummary.negative }}건</p>
+              <div class="px-5 pt-4">
+                <div class="flex h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-full bg-mint transition-all duration-300" :style="{ width: `${sentimentShare(sentimentSummary.positive)}%` }" title="긍정"></div>
+                  <div class="h-full bg-slate-300 transition-all duration-300" :style="{ width: `${sentimentShare(sentimentSummary.neutral)}%` }" title="중립"></div>
+                  <div class="h-full bg-rose-500 transition-all duration-300" :style="{ width: `${sentimentShare(sentimentSummary.negative)}%` }" title="부정"></div>
                 </div>
               </div>
-
-              <p class="mx-5 rounded-lg bg-slate-50 p-4 text-xs font-bold leading-relaxed text-slate-600">
-                {{ sentimentSummary.reason }}
-              </p>
-                </div>
 
               <div class="space-y-4 p-5">
                 <div class="inline-flex rounded-lg border border-slate-200 bg-white p-1">
@@ -679,7 +656,7 @@
                           원문 보기 ↗
                         </a>
                       </div>
-                      <span v-if="false && item.sentiment" class="shrink-0 rounded-full px-3 py-1 text-xs font-extrabold" :class="sentimentBadgeClass(item.sentiment)">
+                      <span v-if="item.sentiment" class="shrink-0 rounded-full px-3 py-1 text-xs font-extrabold" :class="sentimentBadgeClass(item.sentiment)">
                         {{ sentimentLabel(item.sentiment) }}
                       </span>
                     </div>
