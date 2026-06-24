@@ -1012,7 +1012,13 @@ def generate_ai_comment(ticker, risk_type=RISK_TYPE_NEUTRAL):
 
 
 def ai_comment_provider():
-    return f"gms-{settings.GMS_CHAT_MODEL}-meme-v6" if getattr(settings, "GMS_API_KEY", "") else "local-meme-v2"
+    """Return the provider expected for a newly generated AI comment.
+
+    The version suffix deliberately invalidates the old cache: older local
+    fallback comments were stored with a GMS provider name, so they never
+    retried the real model after the key became available.
+    """
+    return f"gms-{settings.GMS_CHAT_MODEL}-meme-v7" if getattr(settings, "GMS_API_KEY", "") else "local-meme-v2"
 
 
 def build_local_ai_comment_payload(stock, score, metric, risk_type):
@@ -1060,7 +1066,8 @@ def build_local_ai_comment_payload(stock, score, metric, risk_type):
         "positive": positive,
         "negative": negative,
         "conclusion": conclusion,
-        "provider": ai_comment_provider(),
+        # A fallback must never masquerade as a successful GMS response.
+        "provider": "local-meme-v2",
     }
 
 

@@ -488,40 +488,6 @@
               </div>
             </div>
 
-            <!-- AI 3줄 코멘트 card -->
-            <section class="panel overflow-hidden">
-              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <div>
-                  <h2 class="text-xl font-bold text-[#172033]">AI 3줄 코멘트</h2>
-                  <p class="mt-1 text-xs font-bold text-slate-400">기업 점수, 타이밍 점수, 리스크 할인 요인을 바탕으로 긍정 요인, 주의 요인, 종합 의견을 요약합니다.</p>
-                </div>
-                <button class="btn-primary" type="button" :disabled="aiLoading" @click="loadAiComment">
-                  {{ aiLoading ? "분석 중" : aiLoadingLabel }}
-                </button>
-              </div>
-
-              <div v-if="aiError" class="m-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-                {{ aiError }}
-              </div>
-              <div v-else-if="aiComment" class="grid gap-3 p-5">
-                <div class="rounded-lg bg-mint/5 p-4">
-                  <p class="text-xs font-extrabold text-mint">긍정 요인</p>
-                  <p class="mt-1.5 text-sm font-bold leading-normal text-slate-800">{{ aiComment.positive }}</p>
-                </div>
-                <div class="rounded-lg bg-amber-50/50 p-4">
-                  <p class="text-xs font-extrabold text-amber-700">주의 요인</p>
-                  <p class="mt-1.5 text-sm font-bold leading-normal text-slate-800">{{ aiComment.negative }}</p>
-                </div>
-                <div class="rounded-lg bg-slate-100/60 p-4">
-                  <p class="text-xs font-extrabold text-slate-600">종합 의견</p>
-                  <p class="mt-1.5 text-sm font-bold leading-normal text-slate-800">{{ aiComment.conclusion }}</p>
-                  <p class="mt-2 text-[10px] font-bold text-slate-400">
-                    {{ aiComment.provider }} · {{ aiComment.cached ? "캐시 사용" : "새로 생성" }}
-                  </p>
-                </div>
-              </div>
-            </section>
-
             <!-- 상세 계산 근거 card -->
             <section class="panel overflow-hidden">
               <div class="border-b border-slate-100 px-5 py-4">
@@ -767,12 +733,12 @@ const countNewsSentiment = (news, type) => {
   return news.filter(item => item.sentiment === type).length;
 };
 
-const aiLoadingLabel = computed(() => (aiComment.value ? "다시 보기" : "AI 분석 보기"));
-
 const stockThemes = computed(() => {
   const themes = report.value?.stock?.themes || [];
   return themes.length ? themes : [report.value?.stock?.primary_theme].filter(Boolean);
 });
+
+const aiLoadingLabel = computed(() => (aiComment.value ? "다시 보기" : "AI 분석 보기"));
 
 const memeComment = computed(() => {
   if (aiComment.value?.positive) {
@@ -794,65 +760,36 @@ const memeComment = computed(() => {
   if (hasWarning) {
     return {
       headline: "농담보다 리스크 관리",
-      details: [
-        strongestDetail(score),
-        score.warning || "경고 신호, 가즈아 잠시 보류",
-        `${action} · 보유자는 리스크 관리`,
-      ],
+      details: [strongestDetail(score), score.warning || "경고 신호, 가즈아 잠시 보류", `${action} · 보유자는 리스크 관리`],
     };
   }
-
   if (timing <= 0) {
     return {
       headline: "풀매수 버튼 완전 압수",
-      details: [
-        strongestDetail(score),
-        "타이밍 0점, 진입각 실종",
-        `${action} · 보유자는 리스크 관리`,
-      ],
+      details: [strongestDetail(score), "타이밍 0점, 진입각 실종", `${action} · 보유자는 리스크 관리`],
     };
   }
-
   if (company >= 70 && timing < 60) {
     return {
       headline: isOverheated ? "로켓은 발사, 지금 타면 멀미각" : "본체는 국밥, 진입각은 품절",
-      details: [
-        `퀄리티 ${formatScore(company)}점, 본체 체력 확실`,
-        `타이밍 ${formatScore(timing)}점, 추격매수 조심`,
-        `${action} · 보유자는 익절각 점검`,
-      ],
+      details: [`퀄리티 ${formatScore(company)}점, 본체 체력 확실`, `타이밍 ${formatScore(timing)}점, 추격매수 조심`, `${action} · 보유자는 익절각 점검`],
     };
   }
-
   if (market >= 70 && company < 60) {
     return {
       headline: "차트는 황제주, 본체는 점검 중",
-      details: [
-        `시장 ${formatScore(market)}점, 떡상 폼 확인`,
-        `퀄리티 ${formatScore(company)}점, 존버 체력 부족`,
-        `${action} · 장기 몰빵은 보류`,
-      ],
+      details: [`시장 ${formatScore(market)}점, 떡상 폼 확인`, `퀄리티 ${formatScore(company)}점, 존버 체력 부족`, `${action} · 장기 몰빵은 보류`],
     };
   }
-
   if (company >= 70 && market >= 70 && timing >= 70) {
     return {
       headline: "본체·차트·타점 전부 로그인",
-      details: [
-        "회사와 시장 점수 모두 상위권",
-        isHighValuation ? "몸값 부담은 우주여행 중" : "과열 부담도 아직 제한적",
-        `${action} · 보유자는 추세 존버`,
-      ],
+      details: ["회사와 시장 점수 모두 상위권", isHighValuation ? "몸값 부담은 우주여행 중" : "과열 부담도 아직 제한적", `${action} · 보유자는 추세 존버`],
     };
   }
-
   return {
     headline: isHighValuation ? "본체는 국밥, 가격은 파인다이닝" : "가즈아 전에 타이밍 확인",
-    details: [
-      strongestDetail(score),
-      weakestDetail(score),
-      `${action} · 보유자는 신호 점검`,
-    ],
+    details: [strongestDetail(score), weakestDetail(score), `${action} · 보유자는 신호 점검`],
   };
 });
 
