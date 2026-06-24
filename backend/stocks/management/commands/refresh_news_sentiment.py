@@ -140,10 +140,9 @@ class Command(BaseCommand):
                 continue
 
             if analyzed or disclosures or options["force"]:
-                scoring_disclosures = [item for item in disclosures if self.should_score_disclosure(item, options["days"])]
-                aggregate = self.aggregate_sentiment([*analyzed, *scoring_disclosures])
+                aggregate = self.aggregate_sentiment(analyzed)
                 score.news = [self.serialize_article(item) for item in analyzed[:30]]
-                score.disclosures = [self.serialize_article(item) for item in disclosures[:100]]
+                score.disclosures = [self.serialize_article(item) for item in self.compact_disclosures(disclosures)[:100]]
                 
                 if not isinstance(score.area_scores, dict):
                     score.area_scores = {}
@@ -597,6 +596,37 @@ class Command(BaseCommand):
             "reason": item["reason"],
             "keyFact": item.get("key_fact", ""),
         }
+
+    def compact_disclosures(self, rows):
+        kept = []
+        seen = set()
+        for item in rows:
+            key = (item.get("published_at").date() if item.get("published_at") else None, self.compact_disclosure_title(item["title"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            kept.append(item)
+        return sorted(kept, key=lambda item: (self.disclosure_priority(item), self.disclosure_sort_date(item)), reverse=True)
+
+    def compact_disclosure_title(self, title):
+        if "임원" in title and "주요주주" in title:
+            return "임원ㆍ주요주주특정증권등소유상황보고서"
+        if "파생상품시장 안내" in title:
+            return "파생상품시장 안내"
+        return " ".join(str(title).split())
+
+    def disclosure_priority(self, item):
+        category = item.get("category")
+        if category == "거래소 안내":
+            return 3
+        if category in {"실적", "배당", "증자·감자", "자기주식", "계약·수주", "합병·분할", "소송·규제"}:
+            return 2
+        if category == "최대주주·지분":
+            return 0
+        return 1
+
+    def disclosure_sort_date(self, item):
+        return item.get("published_at") or (timezone.now() - timedelta(days=36500))
 
     def replace_log_entry(self, log, aggregate):
         rows = [

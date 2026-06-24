@@ -1,10 +1,10 @@
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
+from .models import ScoreSnapshot, Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
 from .serializers import (
     AICommentSerializer,
     PortfolioSerializer,
@@ -34,12 +34,14 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        score_date = latest_score_date()
+        latest_score_date_for_stock = (
+            ScoreSnapshot.objects.filter(stock=OuterRef("pk")).order_by("-base_date").values("base_date")[:1]
+        )
         queryset = Stock.objects.filter(is_active=True).prefetch_related(
             "scores",
             "financial_metrics",
             "theme_links__theme__group",
-        )
+        ).annotate(latest_score_date=Subquery(latest_score_date_for_stock))
         query = self.request.query_params.get("q")
         sector = self.request.query_params.get("sector")
         market = self.request.query_params.get("market")
@@ -57,8 +59,7 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(theme_links__theme__name=theme)
         if theme_group:
             queryset = queryset.filter(theme_links__theme__group__name=theme_group)
-        if score_date:
-            queryset = queryset.filter(scores__base_date=score_date)
+        queryset = queryset.filter(scores__base_date=F("latest_score_date"))
         if min_score:
             queryset = queryset.filter(scores__total_score__gte=float(min_score)).distinct()
         return queryset.order_by("-scores__total_score", "name").distinct()
