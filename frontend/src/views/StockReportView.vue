@@ -107,13 +107,15 @@
             <!-- Right Side: Report Highlights & Cautions -->
             <div class="flex flex-col justify-between">
               <div>
-                <span class="text-2xs font-extrabold uppercase tracking-widest text-mint">AlphaPick Report</span>
+                <span class="text-2xs font-extrabold uppercase tracking-widest text-mint">AI 코멘트</span>
                 <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[#172033] break-keep text-balance">
-                  {{ reportTitle }}
+                  {{ memeComment.headline }}
                 </h2>
-                <p class="mt-1.5 text-sm font-bold text-slate-500 break-keep text-pretty">
-                  {{ reportSubtitle }}
-                </p>
+                <ul class="mt-2 space-y-1.5">
+                  <li v-for="detail in memeComment.details" :key="detail" class="text-sm font-bold text-slate-500 break-keep text-pretty">
+                    {{ detail }}
+                  </li>
+                </ul>
               </div>
 
               <div class="mt-4 grid md:grid-cols-2 gap-6">
@@ -756,12 +758,86 @@ const stockThemes = computed(() => {
   return themes.length ? themes : [report.value?.stock?.primary_theme].filter(Boolean);
 });
 
-const reportTitle = computed(() => `${report.value?.stock?.name || "종목"} 종합 리포트`);
+const memeComment = computed(() => {
+  if (aiComment.value?.positive) {
+    return {
+      headline: aiComment.value.positive,
+      details: [aiComment.value.negative, ...String(aiComment.value.conclusion || "").split(" · ")].filter(Boolean).slice(0, 3),
+    };
+  }
 
-const reportSubtitle = computed(() => {
-  const score = formatScore(report.value?.score?.total_score);
-  const reason = report.value?.score?.key_reason || "";
-  return `${report.value?.stock?.market || "시장"} 1년 가격 데이터 기준 · 종합 ${score}점${reason ? ` · ${reason}` : ""}`;
+  const score = report.value?.score || {};
+  const company = Number(score.company_score || 0);
+  const market = Number(score.market_validation_score || 0);
+  const timing = Number(score.timing_score || 0);
+  const action = score.action_label || "평가 보류";
+  const hasWarning = Boolean(score.fail_safe_flag || report.value?.stock?.low_liquidity_flag || score.is_investment_ineligible);
+  const isOverheated = timing < 55 && (score.warning || "").includes("낙폭");
+  const isHighValuation = Number(score.valuation_adjustment || 0) < 0;
+
+  if (hasWarning) {
+    return {
+      headline: "농담보다 리스크 관리",
+      details: [
+        strongestDetail(score),
+        score.warning || "경고 신호, 가즈아 잠시 보류",
+        `${action} · 보유자는 리스크 관리`,
+      ],
+    };
+  }
+
+  if (timing <= 0) {
+    return {
+      headline: "풀매수 버튼 완전 압수",
+      details: [
+        strongestDetail(score),
+        "타이밍 0점, 진입각 실종",
+        `${action} · 보유자는 리스크 관리`,
+      ],
+    };
+  }
+
+  if (company >= 70 && timing < 60) {
+    return {
+      headline: isOverheated ? "로켓은 발사, 지금 타면 멀미각" : "본체는 국밥, 진입각은 품절",
+      details: [
+        `퀄리티 ${formatScore(company)}점, 본체 체력 확실`,
+        `타이밍 ${formatScore(timing)}점, 추격매수 조심`,
+        `${action} · 보유자는 익절각 점검`,
+      ],
+    };
+  }
+
+  if (market >= 70 && company < 60) {
+    return {
+      headline: "차트는 황제주, 본체는 점검 중",
+      details: [
+        `시장 ${formatScore(market)}점, 떡상 폼 확인`,
+        `퀄리티 ${formatScore(company)}점, 존버 체력 부족`,
+        `${action} · 장기 몰빵은 보류`,
+      ],
+    };
+  }
+
+  if (company >= 70 && market >= 70 && timing >= 70) {
+    return {
+      headline: "본체·차트·타점 전부 로그인",
+      details: [
+        "회사와 시장 점수 모두 상위권",
+        isHighValuation ? "몸값 부담은 우주여행 중" : "과열 부담도 아직 제한적",
+        `${action} · 보유자는 추세 존버`,
+      ],
+    };
+  }
+
+  return {
+    headline: isHighValuation ? "본체는 국밥, 가격은 파인다이닝" : "가즈아 전에 타이밍 확인",
+    details: [
+      strongestDetail(score),
+      weakestDetail(score),
+      `${action} · 보유자는 신호 점검`,
+    ],
+  };
 });
 
 const summaryMetricText = computed(() => {
@@ -1324,6 +1400,24 @@ function formatScore(value) {
   return number.toFixed(1).replace(".0", "");
 }
 
+function memeScoreRows(score) {
+  return [
+    { label: "퀄리티", value: Number(score.company_score || 0), strong: "본체는 국밥", weak: "본체 체력 점검" },
+    { label: "시장", value: Number(score.market_validation_score || 0), strong: "시장 반응 로그인", weak: "시장 반응 로그아웃" },
+    { label: "타이밍", value: Number(score.timing_score || 0), strong: "진입각 살아있음", weak: "진입각 품절" },
+  ];
+}
+
+function strongestDetail(score) {
+  const row = memeScoreRows(score).sort((a, b) => b.value - a.value)[0];
+  return `${row.label} ${formatScore(row.value)}점, ${row.strong}`;
+}
+
+function weakestDetail(score) {
+  const row = memeScoreRows(score).sort((a, b) => a.value - b.value)[0];
+  return `${row.label} ${formatScore(row.value)}점, ${row.weak}`;
+}
+
 function scorePercent(value) {
   const score = Number(value || 0);
   if (Number.isNaN(score)) return 0;
@@ -1364,14 +1458,14 @@ function uniqueRows(rows) {
   return Array.from(new Set(rows.map((row) => String(row).trim()).filter(Boolean)));
 }
 
-async function loadAiComment() {
+async function loadAiComment(options = {}) {
   aiLoading.value = true;
-  aiError.value = "";
+  if (!options.silent) aiError.value = "";
   try {
     const response = await api.post(`/stocks/${props.ticker}/ai-comment/`, { risk_type: "neutral" });
     aiComment.value = response.data;
   } catch (err) {
-    aiError.value = "AI 코멘트를 생성하지 못했습니다. 잠시 후 다시 시도하세요.";
+    if (!options.silent) aiError.value = "AI 코멘트를 생성하지 못했습니다. 잠시 후 다시 시도하세요.";
   } finally {
     aiLoading.value = false;
   }
@@ -1478,6 +1572,7 @@ onMounted(async () => {
   try {
     const response = await api.get(`/stocks/${props.ticker}/report/`);
     report.value = response.data;
+    loadAiComment({ silent: true });
     await loadWatchlistStatus();
   } catch (err) {
     error.value = "종목 리포트를 불러오지 못했습니다.";

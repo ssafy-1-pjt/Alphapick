@@ -1012,35 +1012,93 @@ def generate_ai_comment(ticker, risk_type=RISK_TYPE_NEUTRAL):
 
 
 def ai_comment_provider():
-    return f"gms-{settings.GMS_CHAT_MODEL}" if getattr(settings, "GMS_API_KEY", "") else "local-mvp"
+    return f"gms-{settings.GMS_CHAT_MODEL}-meme-v6" if getattr(settings, "GMS_API_KEY", "") else "local-meme-v2"
 
 
 def build_local_ai_comment_payload(stock, score, metric, risk_type):
-    best_cards = sorted(score.score_cards or [], key=lambda card: card.get("score", 0), reverse=True)
-    worst_cards = sorted(score.score_cards or [], key=lambda card: card.get("score", 100))
-    positive_title = best_cards[0]["title"] if best_cards else "핵심 지표"
-    negative_title = worst_cards[0]["title"] if worst_cards else "위험 지표"
-    upside = 0
-    if metric and metric.current_price and metric.target_price:
-        upside = round((metric.target_price - metric.current_price) / metric.current_price * 100, 1)
+    company = float(score.company_score or 0)
+    market = market_meme_score(score)
+    timing = float(score.timing_score or 0)
+    action = score.action_label or score.verdict or "평가 보류"
+    valuation_heavy = float(score.valuation_adjustment or 0) < 0
+    warning = score.warning or ""
+    action_detail = meme_action_detail(action, warning)
 
-    hurdles = hurdles_for_risk(risk_type)
-    component_pass = passes_entry_hurdles(
-        score.company_score,
-        score.timing_score,
-        score.reliability_score,
-        risk_type,
-    )
-    pass_text = "포트폴리오 후보 조건을 통과합니다" if component_pass else "포트폴리오 후보 조건은 추가 확인이 필요합니다"
-    positive = f"{stock.name}은 {positive_title} 점수가 강하고, 회사 {score.company_score:.1f}점·타이밍 {score.timing_score:.1f}점으로 {RISK_LABELS[risk_type]} 허들(회사 {hurdles['company']}점·타이밍 {hurdles['timing']}점) 기준 {pass_text}."
-    negative = f"다만 {negative_title} 항목과 '{score.warning or '단기 변동성'}' 이슈는 진입 전 확인이 필요합니다."
-    conclusion = f"목표가 기준 상승 여력은 약 {upside}%이며, 현재 판단은 '{score.verdict}'입니다. 본 결과는 투자 참고용 분석입니다."
+    if score.fail_safe_flag or score.is_investment_ineligible or stock.low_liquidity_flag:
+        positive = "농담보다 리스크 관리"
+        negative = strongest_meme_detail(score)
+        conclusion = f"{action} · {warning or '경고 신호 먼저 확인'}"
+    elif timing <= 0:
+        positive = "풀매수 버튼 완전 압수"
+        negative = strongest_meme_detail(score)
+        conclusion = f"{action} · 타이밍 0점이라 진입각 실종"
+    elif company >= 70 and timing >= 70 and ("낙폭" in warning or "과열" in warning):
+        positive = "로켓은 발사, 추격은 멀미각"
+        negative = f"퀄리티 {company:.1f}점, 본체는 국밥"
+        conclusion = f"{action} · {action_detail}"
+    elif company >= 70 and timing < 60:
+        positive = "로켓은 발사, 지금 타면 멀미각" if "낙폭" in warning else "본체는 국밥, 진입각은 품절"
+        negative = f"퀄리티 {company:.1f}점, 본체 체력 확실"
+        conclusion = f"{action} · 타이밍 {timing:.1f}점이라 추격매수 조심"
+    elif market >= 70 and company < 60:
+        positive = "차트는 황제주, 본체는 점검 중"
+        negative = f"시장 {market:.1f}점, 떡상 폼 확인"
+        conclusion = f"{action} · 퀄리티 {company:.1f}점이라 장기 존버는 보류"
+    elif company >= 70 and market >= 70 and timing >= 70:
+        positive = "풀세팅인데 매수버튼 압수" if "관망" in action else "본체·차트·타점 전부 로그인"
+        negative = "회사와 시장 점수 모두 상위권"
+        conclusion = f"{action} · {action_detail}"
+    elif valuation_heavy:
+        positive = "본체는 국밥, 가격은 파인다이닝"
+        negative = strongest_meme_detail(score)
+        conclusion = f"{action} · {weakest_meme_detail(score)}"
+    else:
+        positive = "가즈아 전에 타이밍 확인"
+        negative = strongest_meme_detail(score)
+        conclusion = f"{action} · {weakest_meme_detail(score)}"
     return {
         "positive": positive,
         "negative": negative,
         "conclusion": conclusion,
-        "provider": "local-mvp",
+        "provider": ai_comment_provider(),
     }
+
+
+def meme_score_rows(score):
+    return [
+        ("퀄리티", float(score.company_score or 0), "본체는 국밥", "본체 체력 점검"),
+        ("시장", market_meme_score(score), "시장 반응 로그인", "시장 반응 로그아웃"),
+        ("타이밍", float(score.timing_score or 0), "진입각 살아있음", "진입각 품절"),
+    ]
+
+
+def market_meme_score(score):
+    v4 = (score.area_scores or {}).get("v4") or {}
+    return float(score.market_validation_score or v4.get("marketValidation") or score.reliability_score or 0)
+
+
+def strongest_meme_detail(score):
+    label, value, strong, _ = max(meme_score_rows(score), key=lambda row: row[1])
+    return f"{label} {value:.1f}점, {strong}"
+
+
+def weakest_meme_detail(score):
+    label, value, _, weak = min(meme_score_rows(score), key=lambda row: row[1])
+    return f"{label} {value:.1f}점, {weak}"
+
+
+def meme_action_detail(action, warning):
+    if "관망" in action:
+        if "낙폭" in warning or "과열" in warning:
+            return "폼은 좋은데 변동성 커서 신규 탑승은 대기"
+        return "점수는 좋아도 신호 확인 전 풀매수는 보류"
+    if "익절" in action:
+        return "수익 구간이면 일부 익절각부터 점검"
+    if "매수" in action:
+        return "분할 탑승만 검토, 몰빵은 금지"
+    if "회피" in action or "제외" in action:
+        return "리스크가 앞서서 손가락 대기"
+    return "점수보다 리스크 확인이 먼저"
 
 
 def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
@@ -1059,14 +1117,20 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
         "score": {
             "total": score.total_score,
             "company": score.company_score,
+            "marketValidation": score.market_validation_score,
             "timing": score.timing_score,
+            "valuationAdjustment": score.valuation_adjustment,
             "reliability": score.reliability_score,
+            "actionSignal": score.action_signal,
+            "actionLabel": score.action_label,
             "verdict": score.verdict,
             "signal": score.signal,
             "warning": score.warning,
             "reason": score.reason,
+            "keyReason": score.key_reason,
             "summaryMetrics": score.summary_metrics,
             "scoreCards": score.score_cards,
+            "redFlagReasons": score.red_flag_reasons,
         },
         "financial": {
             "currentPrice": metric.current_price if metric else None,
@@ -1085,15 +1149,21 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
         {
             "role": "developer",
             "content": (
-                "Answer in Korean. You write concise stock report comments for AlphaPick. "
-                "Return only valid JSON with keys positive, negative, conclusion. "
-                "Do not provide investment advice; say it is for reference when needed."
+                "당신은 AlphaPick의 주식 밈 카피라이터다. 입력 점수와 actionLabel을 바꾸지 말고 "
+                "한국 주식 커뮤니티·유튜브 쇼츠·SNS 스타일의 짧고 강한 코멘트로 변환한다. "
+                "반드시 JSON만 반환한다: {\"headline\":\"강한 주식 밈 한 줄\",\"details\":[\"강점 요약\",\"약점 요약\",\"행동 요약\"]}. "
+                "headline은 8~26자, 종목명 반복과 마침표 금지. details는 정확히 3줄. "
+                "headline은 actionLabel을 그대로 옮기면 실패다. '관망', '주도주', 'RS' 같은 라벨만 나열하지 말고 "
+                "반드시 은어/밈 표현과 반전을 넣어라. 예: 풀매수 버튼 압수, 본체는 국밥, 진입각 품절. "
+                "떡상, 존버, 풀매수, 몰빵, 가즈아, 로켓 발사 같은 표현은 비유로만 쓰고 "
+                "수익 보장, 반드시 오른다, 무조건 매수, 지금 사야 함, 상한가 확정은 금지한다."
             ),
         },
         {
             "role": "user",
             "content": (
-                "다음 종목 리포트 데이터를 바탕으로 긍정 요인, 주의 요인, 종합 의견을 각각 1문장으로 작성하세요.\n"
+                "다음 종목 리포트 데이터를 바탕으로 가장 높은 점수와 낮은 점수의 대비를 살려 작성하세요. "
+                "행동 요약에는 actionLabel을 그대로 반영하세요.\n"
                 f"{json.dumps(prompt_payload, ensure_ascii=False)}"
             ),
         },
@@ -1108,7 +1178,8 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
             json={
                 "model": settings.GMS_CHAT_MODEL,
                 "messages": messages,
-                "temperature": 0.3,
+                "temperature": 0.85,
+                "response_format": {"type": "json_object"},
             },
             timeout=settings.GMS_CHAT_TIMEOUT_SECONDS,
         )
@@ -1119,13 +1190,13 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
     except (KeyError, ValueError, requests.RequestException, json.JSONDecodeError):
         return None
 
-    if not parsed:
+    if not parsed or is_bad_meme_comment(parsed, stock):
         return None
     return {
         "positive": parsed["positive"],
         "negative": parsed["negative"],
         "conclusion": parsed["conclusion"],
-        "provider": f"gms-{settings.GMS_CHAT_MODEL}",
+        "provider": ai_comment_provider(),
     }
 
 
@@ -1141,7 +1212,21 @@ def parse_ai_comment_json(content):
         if match:
             text = match.group(0)
     data = json.loads(text)
+    if data.get("headline") and isinstance(data.get("details"), list) and len(data["details"]) >= 3:
+        return {
+            "positive": str(data["headline"]).strip(),
+            "negative": str(data["details"][0]).strip(),
+            "conclusion": " · ".join(str(item).strip() for item in data["details"][1:3] if str(item).strip()),
+        }
     required = ["positive", "negative", "conclusion"]
     if not all(data.get(key) for key in required):
         return None
     return {key: str(data[key]).strip() for key in required}
+
+
+def is_bad_meme_comment(payload, stock):
+    headline = payload.get("positive", "")
+    text = " ".join(str(value) for value in payload.values())
+    meme_terms = ["떡상", "존버", "풀매수", "몰빵", "가즈아", "로켓", "국밥", "진입각", "탑승", "품절", "로그인", "압수", "우주", "멀미", "파인다이닝"]
+    banned_leaks = ["actionLabel", "RS ", "RS", stock.name]
+    return any(term in headline for term in banned_leaks) or "반영:" in text or not any(term in headline for term in meme_terms)
