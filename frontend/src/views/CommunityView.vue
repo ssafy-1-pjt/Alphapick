@@ -57,17 +57,23 @@
       <article :id="`post-${post.id}`" v-for="post in posts" :key="post.id" class="panel scroll-mt-6 overflow-hidden">
         <div class="p-4 sm:p-5">
           <div class="flex flex-col justify-between gap-3 md:flex-row md:items-start">
-            <div>
-              <div class="flex flex-wrap items-center gap-2 text-sm font-bold">
-                <RouterLink class="text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: post.author.id } }">
-                  {{ post.author.display_name }}
-                </RouterLink>
-                <span class="text-slate-400">{{ formatDate(post.created_at) }}</span>
-                <RouterLink v-if="!isStockRoom && post.stock" class="badge bg-mint/10 text-mint" :to="{ name: 'stock-community', params: { ticker: post.stock } }">
-                  {{ post.stock_name || post.stock }} 토론방
-                </RouterLink>
+            <div class="flex min-w-0 items-start gap-3">
+              <RouterLink class="mt-0.5 shrink-0" :to="{ name: 'community-user-activity', params: { userId: post.author.id } }" :aria-label="`${post.author.display_name} 프로필`">
+                <img v-if="profileImageUrl(post.author)" :src="profileImageUrl(post.author)" class="h-10 w-10 rounded-full border border-slate-200 object-cover" :alt="`${post.author.display_name} 프로필 사진`" />
+                <span v-else class="flex h-10 w-10 items-center justify-center rounded-full bg-mint/10 text-sm font-black text-mint">{{ profileInitial(post.author) }}</span>
+              </RouterLink>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2 text-sm font-bold">
+                  <RouterLink class="text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: post.author.id } }">
+                    {{ post.author.display_name }}
+                  </RouterLink>
+                  <span class="text-slate-400">{{ formatDate(post.created_at) }}</span>
+                  <RouterLink v-if="!isStockRoom && post.stock" class="badge bg-mint/10 text-mint" :to="{ name: 'stock-community', params: { ticker: post.stock } }">
+                    {{ post.stock_name || post.stock }} 토론방
+                  </RouterLink>
+                </div>
+                <h2 class="mt-1 text-xl font-black leading-7 text-slate-950 break-keep text-balance">{{ post.title }}</h2>
               </div>
-              <h2 class="mt-1 text-xl font-black leading-7 text-slate-950 break-keep text-balance">{{ post.title }}</h2>
             </div>
             <div class="flex shrink-0 items-center gap-2">
               <button v-if="post.can_edit" class="btn-ghost min-h-0 px-2 py-1 text-sm text-red-600 hover:bg-red-50" type="button" @click="deletePost(post)">
@@ -76,8 +82,8 @@
               </button>
             </div>
           </div>
-          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700 break-keep text-pretty">{{ post.content }}</p>
-          <div class="mt-4 flex items-center gap-3">
+          <p class="ml-[52px] mt-3 whitespace-pre-line text-sm leading-6 text-slate-700 break-keep text-pretty">{{ post.content }}</p>
+          <div class="ml-[52px] mt-4 flex items-center gap-3">
             <button class="btn-secondary min-h-0 px-3 py-1.5 text-sm active:scale-[0.97]" :class="post.liked_by_me ? 'border-rose-200 bg-rose-50 text-rose-600' : ''" type="button" :disabled="likeLoadingIds[post.id]" @click="toggleLike(post)">
               <Heart :size="17" :fill="post.liked_by_me ? 'currentColor' : 'none'" /> 좋아요 {{ post.likes_count }}
             </button>
@@ -168,6 +174,14 @@ function formatDate(value) {
 }
 function visibleComments(post) {
   return post.commentsExpanded ? post.comments : post.comments.slice(0, commentPreviewCount);
+}
+function profileImageUrl(user) {
+  const url = user?.profile_image_url;
+  if (!url || url.startsWith("http")) return url;
+  return `http://127.0.0.1:8000${url}`;
+}
+function profileInitial(user) {
+  return (user?.display_name || user?.username || "U").slice(0, 1).toUpperCase();
 }
 function requireLogin() { router.push(loginRoute.value); }
 async function loadStock() {

@@ -5,10 +5,14 @@
     <template v-else-if="activity">
       <div class="panel p-6">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <p class="text-sm font-black text-mint">Investor Profile</p>
-            <h1 class="mt-1 text-3xl font-black text-slate-950">{{ activity.user.display_name }}</h1>
-            <p class="mt-1 text-slate-500">@{{ activity.user.username }} · 팔로워 {{ activity.user.followers_count }} · 팔로우 {{ activity.user.following_count }}</p>
+          <div class="flex min-w-0 items-center gap-4">
+            <img v-if="profileImageUrl(activity.user)" :src="profileImageUrl(activity.user)" class="h-20 w-20 rounded-full border border-slate-200 object-cover" :alt="`${activity.user.display_name} 프로필 사진`" />
+            <div v-else class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-mint/10 text-2xl font-black text-mint">{{ profileInitial(activity.user) }}</div>
+            <div class="min-w-0">
+              <p class="text-sm font-black text-mint">Investor Profile</p>
+              <h1 class="mt-1 text-3xl font-black text-slate-950">{{ activity.user.display_name }}</h1>
+              <p class="mt-1 text-slate-500">@{{ activity.user.username }} · 팔로워 {{ activity.user.followers_count }} · 팔로우 {{ activity.user.following_count }}</p>
+            </div>
           </div>
           <div class="flex flex-wrap gap-3">
             <button v-if="auth.isAuthenticated && !activity.user.is_me" class="inline-flex min-h-12 items-center gap-2 rounded-lg px-6 text-base font-black shadow-sm transition" :class="activity.user.is_following ? 'border border-mint/30 bg-mint/5 text-mint' : 'bg-mint text-white'" type="button" :disabled="followLoading" @click="toggleFollow">
@@ -58,6 +62,12 @@ import { useAuthStore } from "../stores/auth";
 const props = defineProps({ userId: { type: [String, Number], required: true } });
 const auth = useAuthStore(); const activity = ref(null); const loading = ref(true); const followLoading = ref(false); const error = ref("");
 const formatDate = (value) => value ? new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value)) : "";
+const profileImageUrl = (user) => {
+  const url = user?.profile_image_url;
+  if (!url || url.startsWith("http")) return url;
+  return `http://127.0.0.1:8000${url}`;
+};
+const profileInitial = (user) => (user?.display_name || user?.username || "U").slice(0, 1).toUpperCase();
 const postDestination = (post) => post.stock ? { name: "stock-community", params: { ticker: post.stock }, hash: `#post-${post.id}` } : { name: "community", hash: `#post-${post.id}` };
 const commentDestination = (comment) => comment.post_stock ? { name: "stock-community", params: { ticker: comment.post_stock }, hash: `#comment-${comment.id}` } : { name: "community", hash: `#comment-${comment.id}` };
 async function loadActivity() { try { const { data } = await api.get(`/community/users/${props.userId}/activity/`); activity.value = data; } catch (err) { error.value = err.response?.data?.detail || "투자자 활동을 불러오지 못했습니다."; } finally { loading.value = false; } }

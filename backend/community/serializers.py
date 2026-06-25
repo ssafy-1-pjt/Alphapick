@@ -11,6 +11,7 @@ User = get_user_model()
 
 class CommunityUserSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
+    profile_image_url = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
@@ -23,6 +24,7 @@ class CommunityUserSerializer(serializers.ModelSerializer):
             "username",
             "nickname",
             "display_name",
+            "profile_image_url",
             "risk_type",
             "followers_count",
             "following_count",
@@ -32,6 +34,12 @@ class CommunityUserSerializer(serializers.ModelSerializer):
 
     def get_display_name(self, obj):
         return obj.display_name()
+
+    def get_profile_image_url(self, obj):
+        if not obj.profile_image:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.profile_image.url) if request else obj.profile_image.url
 
     def get_followers_count(self, obj):
         return obj.follower_relations.count()

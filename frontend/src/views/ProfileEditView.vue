@@ -23,15 +23,6 @@
         <input v-model="form.nickname" class="field mt-2" />
       </label>
 
-      <label class="mt-4 block text-sm font-bold text-slate-700">
-        투자 성향
-        <select v-model="form.risk_type" class="field mt-2">
-          <option value="neutral">중립형: 회사 70점 · 타이밍 70점</option>
-          <option value="aggressive">공격형: 회사 65점 · 타이밍 75점</option>
-          <option value="stable">안정형: 회사 75점 · 타이밍 65점</option>
-        </select>
-      </label>
-
       <p v-if="error" class="mt-4 text-sm font-bold text-rose-600">{{ error }}</p>
 
       <button class="btn-primary mt-6 w-full" type="submit" :disabled="submitting">{{ submitting ? "저장 중..." : "저장" }}</button>
@@ -49,7 +40,6 @@ const auth = useAuthStore();
 const router = useRouter();
 const form = reactive({
   nickname: auth.user?.nickname || "",
-  risk_type: auth.user?.risk_type || "neutral",
 });
 const profilePreview = ref(toMediaUrl(auth.user?.profile_image_url));
 const profileFile = ref(null);
@@ -87,7 +77,6 @@ async function submit() {
   error.value = "";
   const payload = new FormData();
   payload.append("nickname", form.nickname);
-  payload.append("risk_type", form.risk_type);
   if (profileFile.value) payload.append("profile_image", profileFile.value);
   if (shouldRemoveImage.value) payload.append("remove_profile_image", "true");
   try {
