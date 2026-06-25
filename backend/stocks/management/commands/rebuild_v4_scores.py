@@ -55,7 +55,7 @@ class Command(BaseCommand):
             metrics_by_stock.setdefault(metric.stock_id, metric)
 
         price_metrics_by_stock = {
-            stock_id: prices_metrics(rows)
+            stock_id: prices_metrics(rows, base_date)
             for stock_id, rows in prices_by_stock.items()
         }
         rs12_scores = [item["return_12_1"] for item in price_metrics_by_stock.values() if item]

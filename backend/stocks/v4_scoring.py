@@ -34,7 +34,7 @@ def score_debt(value):
     return 90 if value <= 75 else 75 if value <= 150 else 55 if value <= 250 else 30
 
 
-def prices_metrics(prices):
+def prices_metrics(prices, base_date):
     closes = [float(row.close_price) for row in prices]
     if len(closes) < 30:
         return None
@@ -52,6 +52,8 @@ def prices_metrics(prices):
     variance = sum((value - mean) ** 2 for value in recent) / len(recent)
     z_score = (last - mean) / sqrt(variance) if variance else 0
     latest, previous = prices[-1], prices[-11] if len(prices) >= 11 else prices[0]
+    stale_days = (base_date - latest.date).days
+    no_recent_volume = sum(item.volume for item in prices[-10:]) == 0
     return {
         "return_12_1": last / one_month * (one_month / one_year) - 1 if one_year else 0,
         "return_6_1": last / one_month * (one_month / six_month) - 1 if six_month else 0,
@@ -63,6 +65,7 @@ def prices_metrics(prices):
         "ema_aligned": bool(latest.ema20 and latest.ema50 and latest.ema20 >= latest.ema50),
         "obv_down": bool(latest.obv is not None and previous.obv is not None and latest.obv < previous.obv),
         "distance_high": (high - last) / high * 100 if high else 100,
+        "is_stale": stale_days > 10 or no_recent_volume,
     }
 
 
@@ -87,7 +90,7 @@ def composite(q, m, t, adjustment):
 
 
 def calculate(score, metric, prices, rs12_scores, rs6_scores, market_regime):
-    pm = prices_metrics(prices)
+    pm = prices_metrics(prices, score.base_date)
     if pm is None:
         return None
     growth = clamp(50 + float(metric.eps_growth or 0) * 0.5) if metric and metric.eps_growth is not None else None
@@ -122,7 +125,9 @@ def calculate(score, metric, prices, rs12_scores, rs6_scores, market_regime):
 
     timing = round(clamp(timing), 1)
     adjustment, valuation_status = valuation_adjustment(metric)
-    ineligible = bool(score.fail_safe_flag or not score.stock.is_tradable)
+    ineligible = bool(score.fail_safe_flag or not score.stock.is_tradable or pm["is_stale"])
+    if ineligible:
+        timing = 0
     if ineligible:
         action, label, action_reason = "REVIEW", "평가 보류 - 거래·데이터 확인 필요", "거래 가능 여부 또는 필수 데이터가 확인되기 전에는 매수 판단을 하지 않습니다."
     elif pm["above_ema50"] is False and pm["obv_down"]:
