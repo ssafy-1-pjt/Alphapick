@@ -12,52 +12,24 @@
 
     <template v-else>
       <div class="mt-5 rounded-lg border border-slate-800 bg-slate-300 p-7">
-        <p class="text-sm font-extrabold text-slate-700">{{ report.stock.name }} · {{ report.stock.ticker }} · {{ report.score.base_date }}</p>
-        <h1 class="mt-3 text-4xl font-extrabold leading-tight text-slate-950">{{ detail.title }}</h1>
-        <p class="mt-3 max-w-4xl text-lg font-bold leading-8 text-slate-700">{{ detail.summary }}</p>
-        <div class="mt-5 flex flex-wrap gap-2">
-          <span class="badge bg-slate-950 text-white">{{ sectionLabel }}</span>
-          <span class="badge bg-mint/10 text-mint">현재값 {{ displayValue }}</span>
-          <span v-if="detail.status" class="badge bg-blue-50 text-blue-700">{{ detail.status }}</span>
+        <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div class="min-w-0">
+            <p class="text-sm font-extrabold text-slate-700">{{ report.stock.name }} · {{ report.stock.ticker }} · {{ report.score.base_date }}</p>
+            <h1 class="mt-3 text-4xl font-extrabold leading-tight text-slate-950">{{ detail.title }}</h1>
+            <p class="mt-3 max-w-4xl text-lg font-bold leading-8 text-slate-700">{{ detail.summary }}</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <span class="badge bg-slate-950 text-white">{{ sectionLabel }}</span>
+              <span v-if="detail.status" class="badge bg-blue-50 text-blue-700">{{ detail.status }}</span>
+            </div>
+          </div>
+          <div class="shrink-0 rounded-lg bg-white/45 px-7 py-6 ring-1 ring-slate-700/15 lg:min-w-72 lg:text-right">
+            <p class="text-sm font-extrabold text-slate-700">현재 리포트 값</p>
+            <p class="mt-2 text-7xl font-black leading-none tabular-nums" :class="scoreColor(numericValue)">{{ displayValue }}</p>
+          </div>
         </div>
       </div>
 
-      <div class="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside class="space-y-4">
-          <div class="panel p-5">
-            <p class="text-sm font-extrabold text-slate-500">현재 리포트 값</p>
-            <p class="mt-3 text-5xl font-extrabold tabular-nums" :class="scoreColor(numericValue)">{{ displayValue }}</p>
-            <p v-if="detail.status" class="mt-2 text-sm font-extrabold text-mint">{{ detail.status }}</p>
-          </div>
-
-          <div class="panel p-5">
-            <p class="text-sm font-extrabold text-slate-500">최종 종합 점수</p>
-            <p class="mt-3 text-5xl font-extrabold text-slate-950">{{ formatScore(report.score.total_score) }}</p>
-            <p class="mt-2 text-sm font-bold leading-6 text-slate-500">
-              회사 품질(Q)·시장 검증(M)·매수 타이밍(T)을 기하평균으로 결합한 뒤 밸류에이션을 조정합니다.
-            </p>
-          </div>
-
-          <div class="panel divide-y divide-slate-100">
-            <div class="flex justify-between p-4">
-              <span class="text-slate-500">회사 점수</span>
-              <strong>{{ formatScore(report.score.company_score) }}</strong>
-            </div>
-            <div class="flex justify-between p-4">
-              <span class="text-slate-500">시장 검증 점수</span>
-              <strong>{{ formatScore(report.score.market_validation_score) }}</strong>
-            </div>
-            <div class="flex justify-between p-4">
-              <span class="text-slate-500">타이밍 점수</span>
-              <strong>{{ formatScore(report.score.timing_score) }}</strong>
-            </div>
-            <div class="flex justify-between p-4">
-              <span class="text-slate-500">신뢰도</span>
-              <strong>{{ formatScore(report.score.reliability_score) }}</strong>
-            </div>
-          </div>
-        </aside>
-
+      <div class="mt-6">
         <main class="space-y-5">
           <DetailBlock title="1. 무엇을 보는 지표인가?" :body="detail.meaning" />
           <DetailBlock title="2. 어떻게 계산했나?" :body="detail.calculation" />
