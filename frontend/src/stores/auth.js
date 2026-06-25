@@ -44,13 +44,21 @@ export const useAuthStore = defineStore("auth", () => {
     return data;
   }
 
-  function logout() {
+  function clearSession() {
     user.value = null;
     access.value = null;
     refresh.value = null;
     localStorage.removeItem("alphapick.access");
     localStorage.removeItem("alphapick.refresh");
     localStorage.removeItem("alphapick.user");
+  }
+
+  function logout() {
+    clearSession();
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("auth-expired", clearSession);
   }
 
   return { user, access, refresh, isAuthenticated, login, register, fetchMe, updateMe, logout };

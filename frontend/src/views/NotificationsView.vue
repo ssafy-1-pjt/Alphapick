@@ -49,10 +49,13 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Bell, ChevronRight, MessageCircle } from "@lucide/vue";
 import { api, unwrapList } from "../api/client";
+import { useAuthStore } from "../stores/auth";
 
+const auth = useAuthStore();
+const route = useRoute();
 const router = useRouter();
 const notifications = ref([]);
 const loading = ref(true);
@@ -86,6 +89,7 @@ function notificationDestination(notification) {
 }
 
 async function loadNotifications() {
+  if (!auth.isAuthenticated) return router.replace({ path: "/login", query: { next: route.fullPath } });
   loading.value = true;
   error.value = "";
   try {
