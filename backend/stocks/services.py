@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import date, datetime, time, timedelta
+import hashlib
 import json
 import re
 
@@ -10,6 +11,7 @@ from django.conf import settings
 from django.utils import timezone
 import requests
 
+from .ai_headlines import HEADLINE_TEMPLATES
 from .models import AICommentCache, FinancialMetric, PortfolioItem, PortfolioRun, PriceDaily, ScoreSnapshot, Stock
 
 
@@ -1034,6 +1036,8 @@ def generate_ai_comment(ticker, risk_type=RISK_TYPE_NEUTRAL):
     local_payload = build_local_ai_comment_payload(stock, score, metric, risk_type)
     gms_payload = request_gms_ai_comment(stock, score, metric, risk_type, local_payload)
     payload = gms_payload or local_payload
+    payload["positive"] = select_headline_with_ai(stock, score, determine_headline_category(stock, score))
+    payload["provider"] = ai_comment_provider()
 
     comment, _ = AICommentCache.objects.update_or_create(
         stock=stock,
@@ -1051,7 +1055,7 @@ def ai_comment_provider():
     fallback comments were stored with a GMS provider name, so they never
     retried the real model after the key became available.
     """
-    return f"gms-{settings.GMS_CHAT_MODEL}-comment-v14" if getattr(settings, "GMS_API_KEY", "") else "local-comment-v9"
+    return f"gms-{settings.GMS_CHAT_MODEL}-comment-v15" if getattr(settings, "GMS_API_KEY", "") else "local-comment-v10"
 
 
 def build_local_ai_comment_payload(stock, score, metric, risk_type):
@@ -1097,10 +1101,10 @@ def build_local_ai_comment_payload(stock, score, metric, risk_type):
         conclusion = f"{action} · {weakest_meme_detail(score)}"
     return {
         "positive": positive,
-        "negative": f"💪 강점: {negative}라서 본체 체력은 일단 인정해야지",
-        "conclusion": f"⚠️ 약점: {weakest_meme_detail(score)}라 여기서 성급하게 뛰면 손가락이 먼저 다칠 수 있어 · 🎯 행동: {conclusion}, 한 번에 몰지 말고 신호부터 보자",
+        "negative": f"💪 강점: {negative}. 본체 체력은 일단 인정해야지",
+        "conclusion": f"⚠️ 약점: {weakest_meme_detail(score)}. 여기서 성급하게 뛰면 손가락이 먼저 다칠 수 있어 · 🎯 행동: {conclusion}, 한 번에 몰지 말고 신호부터 보자",
         # A fallback must never masquerade as a successful GMS response.
-        "provider": "local-comment-v9",
+        "provider": "local-comment-v10",
     }
 
 
@@ -1139,6 +1143,118 @@ def meme_action_detail(action, warning):
     if "회피" in action or "제외" in action:
         return "리스크가 앞서서 손가락 대기"
     return "점수보다 리스크 확인이 먼저"
+
+
+def compact_text(value, max_length=100):
+    return re.sub(r"\s+", " ", str(value or "")).strip()[:max_length]
+
+
+def headline_context(score):
+    return " ".join(
+        [
+            str(score.warning or ""),
+            str(getattr(score, "reason", "") or ""),
+            str(score.key_reason or ""),
+            json.dumps(score.summary_metrics or {}, ensure_ascii=False),
+            json.dumps(score.red_flag_reasons or [], ensure_ascii=False),
+        ]
+    )
+
+
+def determine_headline_category(stock, score):
+    company = float(score.company_score or 0)
+    market = market_meme_score(score)
+    timing = float(score.timing_score or 0)
+    rsi = float(score.rsi or 0)
+    rs_rank = float(score.rs_rank or 0)
+    volume_ratio = float(score.volume_ratio or 0)
+    action = str(score.action_label or score.verdict or "")
+    context = headline_context(score)
+
+    if score.fail_safe_flag or score.is_investment_ineligible or stock.low_liquidity_flag:
+        return "risk"
+    if timing <= 0:
+        return "weak_timing"
+    if rsi >= 75 or "과열" in context:
+        return "rsi_overheat"
+    if any(keyword in context for keyword in ("52주 신고가", "신고가 근접", "전고점 근접", "신고가 부근")):
+        return "near_high"
+    if score.volume_surge_flag or volume_ratio >= 2:
+        return "volume_surge"
+    if any(keyword in context for keyword in ("저항 돌파", "전고점 돌파", "신고가 돌파", "박스권 돌파")):
+        return "breakout"
+    if any(keyword in context for keyword in ("눌림", "조정 구간", "지지선 근접", "이평선 지지")):
+        return "pullback"
+    if ("관망" in action or "관찰" in action or "대기" in action) and rs_rank >= 90:
+        return "leader_wait"
+    if "매수" in action and timing >= 70:
+        return "split_entry"
+    if company >= 80 and market >= 75 and timing >= 70:
+        return "balanced"
+    if timing < 65:
+        return "weak_timing"
+    if rs_rank >= 95 and market >= 75:
+        return "strong_momentum"
+    return "default"
+
+
+def stable_headline_fallback(stock, score, category, candidate_rows):
+    seed = f"{stock.ticker}:{score.base_date}:{category}"
+    index = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16) % len(candidate_rows)
+    return candidate_rows[index]["text"]
+
+
+def select_headline_with_ai(stock, score, category):
+    candidate_rows = HEADLINE_TEMPLATES.get(category, HEADLINE_TEMPLATES["default"])
+    fallback = stable_headline_fallback(stock, score, category, candidate_rows)
+    api_key = getattr(settings, "GMS_API_KEY", "")
+    if not api_key:
+        return fallback
+
+    payload = {
+        "category": category,
+        "stockContext": {
+            "companyScore": round(float(score.company_score or 0), 1),
+            "marketScore": round(float(market_meme_score(score) or 0), 1),
+            "timingScore": round(float(score.timing_score or 0), 1),
+            "totalScore": round(float(score.total_score or 0), 1),
+            "rsi": round(float(score.rsi or 0), 1),
+            "rsRank": round(float(score.rs_rank or 0), 1),
+            "volumeRatio": round(float(score.volume_ratio or 0), 2),
+            "actionLabel": score.action_label or score.verdict or "",
+            "warning": compact_text(score.warning),
+            "keyReason": compact_text(score.key_reason),
+        },
+        "candidates": [
+            {"index": index, "text": candidate["text"], "fit": candidate["fit"]}
+            for index, candidate in enumerate(candidate_rows)
+        ],
+    }
+    messages = [
+        {
+            "role": "developer",
+            "content": (
+                "당신은 주식 문구 작성자가 아니라 선택기다. 후보 문구를 수정하거나 새로 작성하지 않는다. "
+                "종목 데이터에 가장 잘 맞는 후보 하나를 고른다. actionLabel과 반대되는 행동을 권하는 문구는 선택하지 않는다. "
+                '반드시 JSON만 반환한다: {"index": 0}'
+            ),
+        },
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+    ]
+    try:
+        response = requests.post(
+            settings.GMS_CHAT_COMPLETIONS_URL,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            json={"model": settings.GMS_CHAT_MODEL, "messages": messages, "temperature": 0, "response_format": {"type": "json_object"}},
+            timeout=settings.GMS_CHAT_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        selected_index = int(json.loads(response.json()["choices"][0]["message"]["content"])["index"])
+        if 0 <= selected_index < len(candidate_rows):
+            return candidate_rows[selected_index]["text"]
+    except (KeyError, TypeError, ValueError, requests.RequestException, json.JSONDecodeError):
+        pass
+    return fallback
 
 
 def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
@@ -1189,18 +1305,12 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
         {
             "role": "developer",
             "content": (
-                "당신은 AlphaPick의 주식 밈 카피라이터다. 입력 점수와 actionLabel을 바꾸지 말고 "
-                "한국 주식 커뮤니티·유튜브 쇼츠·SNS 스타일의 짧고 강한 코멘트로 변환한다. "
-                "반드시 JSON만 반환한다: {\"headline\":\"말하듯이 툭 던지는 한 줄\",\"details\":[\"💪 강점: 자연스러운 한 문장\",\"⚠️ 약점: 훈수두듯이 한 문장\",\"🎯 행동: 실제 행동을 풀어쓴 한 문장\"]}. "
-                "headline은 18~42자, 완성된 한국어 문장으로 쓰고 문장 끝에 상황에 맞는 이모지 1개를 붙인다. 종목명과 티커와 마침표 금지. "
-                "'는 관망이 답', '이건 관찰', '매수 후보'처럼 주어·서술어가 빠진 짧은 조각 문장은 실패다. "
+                "AlphaPick 종목 리포트의 설명 3줄을 작성한다. "
+                "반드시 JSON만 반환한다: {\"details\":[\"💪 강점: ...\",\"⚠️ 약점: ...\",\"🎯 행동: ...\"]}. "
                 "details는 정확히 3줄이며 각 줄은 이모지와 강점/약점/행동 라벨로 시작한다. "
                 "details는 '시장 점수 69.9점으로...'처럼 보고서 요약만 쓰지 말고, '~긴 한데', '~라서 지금은', '~부터 보자'처럼 사람이 말하는 훈수체로 쓴다. "
-                "headline도 제목처럼 딱딱하게 쓰지 말고 친구가 옆에서 툭 말하는 느낌으로 쓴다. 밈은 한 단어 정도만 곁들인다. "
-                "좋은 예: 이건 좀 기다렸다 타는 게 낫다 🧘, 본체는 좋은데 손은 잠깐 참자 ✋, 지금 뛰면 손가락만 바빠진다 🏃. "
-                "'말하듯이', '친구한테', '한 단어:' 같은 작성 지시문을 출력에 그대로 쓰면 실패다. "
-                "떡상, 존버, 풀매수, 몰빵, 가즈아, 로켓 발사 같은 표현은 가끔 비유로만 쓰고 "
-                "수익 보장, 반드시 오른다, 무조건 매수, 지금 사야 함, 상한가 확정은 금지한다."
+                "입력에 없는 사실을 추가하지 않고, 행동 문장은 actionLabel의 의미를 바꾸지 않는다. "
+                "과도한 확신이나 수익 보장 표현은 금지한다."
             ),
         },
         {
@@ -1222,7 +1332,7 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
             json={
                 "model": settings.GMS_CHAT_MODEL,
                 "messages": messages,
-                "temperature": 0.85,
+                "temperature": 0.55,
                 "response_format": {"type": "json_object"},
             },
             timeout=settings.GMS_CHAT_TIMEOUT_SECONDS,
@@ -1234,12 +1344,10 @@ def request_gms_ai_comment(stock, score, metric, risk_type, fallback_payload):
     except (KeyError, ValueError, requests.RequestException, json.JSONDecodeError):
         return None
 
-    if parsed:
-        parsed = sanitize_ai_comment(parsed, stock)
     if not parsed or is_bad_meme_comment(parsed, stock):
         return None
     return {
-        "positive": parsed["positive"],
+        "positive": fallback_payload["positive"],
         "negative": parsed["negative"],
         "conclusion": parsed["conclusion"],
         "provider": ai_comment_provider(),
@@ -1258,9 +1366,9 @@ def parse_ai_comment_json(content):
         if match:
             text = match.group(0)
     data = json.loads(text)
-    if data.get("headline") and isinstance(data.get("details"), list) and len(data["details"]) >= 3:
+    if isinstance(data.get("details"), list) and len(data["details"]) >= 3:
         return {
-            "positive": str(data["headline"]).strip(),
+            "positive": "",
             "negative": str(data["details"][0]).strip(),
             "conclusion": " · ".join(str(item).strip() for item in data["details"][1:3] if str(item).strip()),
         }
@@ -1270,39 +1378,8 @@ def parse_ai_comment_json(content):
     return {key: str(data[key]).strip() for key in required}
 
 
-def sanitize_ai_comment(payload, stock):
-    headline = payload.get("positive", "")
-    # List of common Korean particles that might follow a stock name or ticker
-    particles = r"(?:은|는|이|가|을|를|의|에|와|과|으로|로|도|만|하고|에서|에게|한테|이라|이랑)?"
-    for forbidden in (stock.name, stock.ticker, stock.ticker.split(".")[0]):
-        if forbidden:
-            headline = re.sub(rf"^\s*{re.escape(forbidden)}{particles}\s*[-:·,]*\s*", "", headline).strip()
-            headline = re.sub(rf"\s*{re.escape(forbidden)}{particles}\s*", " ", headline).strip()
-    headline = re.sub(r"\s+", " ", headline).strip(" -:·,")
-    if not headline:
-        return None
-    if not re.search(r"[\U0001F300-\U0001FAFF]", headline):
-        headline = f"{headline} {headline_emoji(payload)}"
-    cleaned = {**payload, "positive": headline}
-    for key in ("negative", "conclusion"):
-        cleaned[key] = re.sub(r"(?:친구한테\s*)?말하듯이\s*", "", cleaned.get(key, ""))
-        cleaned[key] = re.sub(r"\(?한 단어:\s*[^)]+?\)?", "", cleaned[key]).strip()
-    return cleaned
-
-
-def headline_emoji(payload):
-    text = " ".join(str(value) for value in payload.values())
-    if any(term in text for term in ("대기", "관망", "관찰", "보류", "조건 미충족")):
-        return "🧘"
-    if any(term in text for term in ("주의", "리스크", "하방", "손절", "과열")):
-        return "⚠️"
-    if any(term in text for term in ("매수", "분할", "탑승", "진입")):
-        return "🎯"
-    return "🔥"
-
-
 def is_bad_meme_comment(payload, stock):
     headline = payload.get("positive", "")
     text = " ".join(str(value) for value in payload.values())
     banned_leaks = ["actionLabel", "RS ", "RS"]
-    return any(term in headline for term in banned_leaks) or "반영:" in text or len(headline) < 12
+    return any(term in headline for term in banned_leaks) or "반영:" in text

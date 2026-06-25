@@ -82,7 +82,7 @@
           <div v-else-if="!stocks.length" class="panel p-8 text-center font-bold text-slate-500">조건에 맞는 종목이 없습니다.</div>
           <section v-else class="panel overflow-hidden">
             <div class="overflow-x-auto">
-              <table class="w-full min-w-[1480px] table-fixed text-left">
+              <table class="w-full min-w-[1720px] table-fixed text-left">
                 <caption class="sr-only">종합 점수와 세부 축 기준 전체 종목 목록</caption>
                 <colgroup>
                   <col class="w-[64px]" />
@@ -90,6 +90,8 @@
                   <col class="w-[120px]" />
                   <col class="w-[150px]" />
                   <col class="w-[260px]" />
+                  <col class="w-[120px]" />
+                  <col class="w-[120px]" />
                   <col class="w-[100px]" />
                   <col class="w-[96px]" />
                   <col class="w-[96px]" />
@@ -104,6 +106,12 @@
                     <th class="px-4 py-3 break-keep text-balance">섹터</th>
                     <th class="px-4 py-3 break-keep text-balance">테마</th>
                     <th class="px-4 py-3 break-keep text-balance">
+                      <button type="button" class="whitespace-nowrap font-bold transition hover:text-slate-950" :class="sortHeaderClass('market_cap')" @click="toggleSort('market_cap')">시가 총액 {{ sortArrow('market_cap') }}</button>
+                    </th>
+                    <th class="px-4 py-3 break-keep text-balance">
+                      <button type="button" class="whitespace-nowrap font-bold transition hover:text-slate-950" :class="sortHeaderClass('avg_trading_value')" @click="toggleSort('avg_trading_value')">평균 거래대금 {{ sortArrow('avg_trading_value') }}</button>
+                    </th>
+                    <th class="px-4 py-3 break-keep text-balance">
                       <button type="button" class="whitespace-nowrap font-bold transition hover:text-slate-950" :class="sortHeaderClass('composite')" @click="toggleSort('composite')">종합 점수 {{ sortArrow('composite') }}</button>
                     </th>
                     <th class="px-3 py-3 break-keep text-balance">
@@ -115,7 +123,12 @@
                     <th class="px-3 py-3 break-keep text-balance">
                       <button type="button" class="whitespace-nowrap font-bold transition hover:text-slate-950" :class="sortHeaderClass('timing')" @click="toggleSort('timing')">매수 타이밍 {{ sortArrow('timing') }}</button>
                     </th>
-                    <th class="px-5 py-3 break-keep text-balance">핵심 사유</th>
+                    <th class="px-5 py-3 break-keep text-balance">
+                      <div class="flex items-center justify-between gap-1.5 w-full">
+                        <span>핵심 사유</span>
+                        <button type="button" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-300 transition-colors" @click="showGuideModal = true" title="분석 기준 가이드 보기">?</button>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-sm">
@@ -131,6 +144,12 @@
                         <span v-for="theme in stockThemes(stock)" :key="`${stock.ticker}-${theme}`" class="rounded bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 break-keep">{{ theme }}</span>
                         <span v-if="!stockThemes(stock).length" class="font-bold text-slate-400">-</span>
                       </div>
+                    </td>
+                    <td class="px-4 py-4 font-bold text-slate-600 tabular-nums">
+                      {{ formatKoreanAmount(stock.market_cap) }}
+                    </td>
+                    <td class="px-4 py-4 font-bold text-slate-600 tabular-nums">
+                      {{ formatKoreanAmount(stock.avg_trading_value) }}
                     </td>
                     <td class="px-4 py-4">
                       <div class="inline-flex min-w-14 flex-col items-start gap-1">
@@ -172,6 +191,81 @@
         </div>
       </div>
     </div>
+
+    <!-- Guide Modal -->
+    <div v-if="showGuideModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showGuideModal = false">
+      <div class="panel w-full max-w-2xl overflow-hidden bg-white p-6 shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <h3 class="text-xl font-extrabold text-slate-950">AlphaPick 분석 기준 가이드</h3>
+          <button type="button" class="text-slate-400 hover:text-slate-600 font-extrabold text-lg" @click="showGuideModal = false">✕</button>
+        </div>
+        
+        <div class="mt-5 max-h-[60vh] overflow-y-auto pr-2 space-y-6 text-sm">
+          <!-- Section 1: Scores -->
+          <section>
+            <h4 class="text-base font-extrabold text-slate-950 mb-3 border-l-4 border-[#12b8a6] pl-2">평가 점수 구성</h4>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="rounded-lg border border-mint/20 bg-mint/5 p-3">
+                <strong class="font-bold text-slate-900 block mb-1">종합 점수</strong>
+                <p class="text-xs text-slate-500 leading-relaxed">회사 품질(Q 40%), 시장 검증(M 25%), 매수 타이밍(T 35%)의 세 가지 축을 기하평균으로 결합하여 100점 만점으로 최종 산출합니다.</p>
+              </div>
+              <div class="rounded-lg border border-emerald-100 bg-emerald-50/30 p-3">
+                <strong class="font-bold text-slate-900 block mb-1">회사 품질</strong>
+                <p class="text-xs text-slate-500 leading-relaxed">성장성(30%) + 수익성·자본효율(30%) + 재무안정성(25%) + 현금흐름·이익의 질(15%)을 결합하여 기업의 본재가치를 평가합니다.</p>
+              </div>
+              <div class="rounded-lg border border-blue-100 bg-blue-50/30 p-3">
+                <strong class="font-bold text-slate-900 block mb-1">시장 검증</strong>
+                <p class="text-xs text-slate-500 leading-relaxed">12-1M 상대강도(40%) + 6-1M 상대강도(20%) + 하방 변동성 방어(25%) + MDD 방어(15%)를 반영해 시장 주도력과 안정성을 검증합니다.</p>
+              </div>
+              <div class="rounded-lg border border-amber-100 bg-amber-50/30 p-3">
+                <strong class="font-bold text-slate-900 block mb-1">매수 타이밍</strong>
+                <p class="text-xs text-slate-500 leading-relaxed">EMA 가격 추세(30%) + 수급(25%) + 돌파 품질(25%) + 진입 품질(20%)을 계산하며, 시장 국면 및 단기 과열 시 가격 할인을 가산합니다.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 2: Key Reasons -->
+          <section>
+            <h4 class="text-base font-extrabold text-slate-950 mb-3 border-l-4 border-blue-500 pl-2">핵심 사유 조건</h4>
+            <div class="space-y-3">
+              <div class="flex items-start gap-3 rounded-lg border border-teal-100 bg-teal-50/30 p-3">
+                <span class="inline-flex shrink-0 w-28 justify-center items-center rounded-full bg-teal-50 py-0.5 text-xs font-bold text-teal-700 ring-1 ring-teal-200">RS 80~99</span>
+                <div class="text-xs">
+                  <strong class="font-bold text-slate-900 block mb-0.5">상대강도 등급 (Relative Strength)</strong>
+                  <p class="text-slate-500 leading-relaxed">국내 전체 주식 유니버스 안에서 해당 종목의 최근 6개월~1년 누적 수익률이 상위 몇 %인지 나타내는 백분위 지표입니다. (예: RS 99는 상위 1% 강세)</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/30 p-3">
+                <span class="inline-flex shrink-0 w-28 justify-center items-center rounded-full bg-indigo-50 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200">52주 신고가 근접</span>
+                <div class="text-xs">
+                  <strong class="font-bold text-slate-900 block mb-0.5">역사적 가격 돌파 흐름</strong>
+                  <p class="text-slate-500 leading-relaxed">최근 52주(1년) 최고가 대비 현재 가격 차이가 3% 이내인 상태로, 위에 매물 저항이 없고 상승 관성이 가장 강력한 추세임을 의미합니다.</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/30 p-3">
+                <span class="inline-flex shrink-0 w-28 justify-center items-center rounded-full bg-indigo-50 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200">거래량 급증</span>
+                <div class="text-xs">
+                  <strong class="font-bold text-slate-900 block mb-0.5">대량 거래 수급 집중</strong>
+                  <p class="text-slate-500 leading-relaxed">당일 거래량이 직전 20거래일 평균 거래량의 2.0배 이상 급증하여 메이저 수급 주체의 활발한 유입(스마트 머니)이 발생하는 신호입니다.</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/30 p-3">
+                <span class="inline-flex shrink-0 w-28 justify-center items-center rounded-full bg-slate-100 py-0.5 text-xs font-bold text-slate-600 ring-1 ring-slate-200">3개월 모멘텀</span>
+                <div class="text-xs">
+                  <strong class="font-bold text-slate-900 block mb-0.5">단기 거래/가격 탄력성</strong>
+                  <p class="text-slate-500 leading-relaxed">최근 3개월(63거래일) 동안의 가격 누적 상승률이 10%를 초과하여 매수 거래가 가속화되고 있는 상승 모멘텀 국면입니다.</p>
+                </div>
+              </div>
+              
+            </div>
+          </section>
+        </div>
+        
+        <div class="mt-6 border-t border-slate-100 pt-4 flex justify-end">
+          <button type="button" class="btn-primary px-6" @click="showGuideModal = false">가이드 닫기</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -182,6 +276,7 @@ import { api } from "../api/client";
 
 const filters = reactive({ q: "", min_score: "", sort: "composite", direction: "desc", theme_group: "", theme: "" });
 const stocks = ref([]);
+const showGuideModal = ref(false);
 const themeGroups = ref([]);
 const loading = ref(true);
 const themeLoading = ref(true);
@@ -353,6 +448,30 @@ function stockThemes(stock) {
 function formatScore(value) {
   const score = Number(value || 0);
   return Number.isInteger(score) ? score : score.toFixed(1);
+}
+
+function formatKoreanAmount(rawKrw) {
+  if (rawKrw == null || isNaN(rawKrw)) return "-";
+  const raw = Number(rawKrw);
+  if (raw >= 1e12) {
+    const jo = raw / 1e12;
+    if (jo < 10) {
+      return `${jo.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}조`;
+    }
+    return `${Math.round(jo).toLocaleString("ko-KR")}조`;
+  }
+  if (raw >= 1e8) {
+    const eok = raw / 1e8;
+    if (eok < 10) {
+      return `${eok.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}억`;
+    }
+    return `${Math.round(eok).toLocaleString("ko-KR")}억`;
+  }
+  if (raw >= 1e4) {
+    const man = raw / 1e4;
+    return `${man.toLocaleString("ko-KR", { maximumFractionDigits: 0 })}만`;
+  }
+  return `${raw.toLocaleString("ko-KR")}원`;
 }
 
 function scoreTextClass(value) {

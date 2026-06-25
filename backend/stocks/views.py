@@ -1,12 +1,12 @@
 from django.conf import settings
 from django.core.management import call_command
-from django.db.models import Case, Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery, Value, When
+from django.db.models import Case, Count, F, FloatField, IntegerField, OuterRef, Prefetch, Q, Subquery, Value, When
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ScoreSnapshot, Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
+from .models import FinancialMetric, ScoreSnapshot, Stock, Theme, ThemeGroup, Watchlist, WatchlistFolder
 from .serializers import (
     AICommentSerializer,
     PortfolioSerializer,
@@ -39,11 +39,21 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
         latest_score_date_for_stock = (
             ScoreSnapshot.objects.filter(stock=OuterRef("pk")).order_by("-base_date").values("base_date")[:1]
         )
+        latest_market_cap = (
+            FinancialMetric.objects.filter(stock=OuterRef("pk")).order_by("-base_date").values("market_cap")[:1]
+        )
+        latest_avg_trading_value = (
+            FinancialMetric.objects.filter(stock=OuterRef("pk")).order_by("-base_date").values("payload__avg_trading_value_20")[:1]
+        )
         queryset = Stock.objects.filter(is_active=True).prefetch_related(
             "scores",
             "financial_metrics",
             "theme_links__theme__group",
-        ).annotate(latest_score_date=Subquery(latest_score_date_for_stock))
+        ).annotate(
+            latest_score_date=Subquery(latest_score_date_for_stock),
+            market_cap_anno=Subquery(latest_market_cap, output_field=FloatField()),
+            avg_trading_value_anno=Subquery(latest_avg_trading_value, output_field=FloatField()),
+        )
         query = self.request.query_params.get("q")
         sector = self.request.query_params.get("sector")
         market = self.request.query_params.get("market")
@@ -79,10 +89,16 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
             "market": "market_validation_score",
             "timing": "timing_score",
             "valuation": "valuation_adjustment",
+            "market_cap": "market_cap_anno",
+            "avg_trading_value": "avg_trading_value_anno",
         }
         field = sort_fields.get(sort, "total_score")
         prefix = "" if direction == "asc" else "-"
-        return queryset.order_by("is_zero_score", f"{prefix}scores__{field}", "name").distinct()
+        if field in ["market_cap_anno", "avg_trading_value_anno"]:
+            order_field = f"{prefix}{field}"
+        else:
+            order_field = f"{prefix}scores__{field}"
+        return queryset.order_by("is_zero_score", order_field, "name").distinct()
 
     @action(detail=True, methods=["get"], url_path="report")
     def report(self, request, ticker=None):

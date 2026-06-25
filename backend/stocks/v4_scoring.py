@@ -117,17 +117,18 @@ def calculate(score, metric, prices, rs12_scores, rs6_scores, market_regime):
         timing *= .50
     # 시장 국면별 동적 매수 진입 기준(Gate) 설정
     if market_regime >= 60:
-        required_timing = 70.0
+        required_score = 70.0
     elif market_regime >= 45:
-        required_timing = 75.0
+        required_score = 75.0
     else:
-        required_timing = 80.0
+        required_score = 80.0
 
     timing = round(clamp(timing), 1)
     adjustment, valuation_status = valuation_adjustment(metric)
     ineligible = bool(score.fail_safe_flag or not score.stock.is_tradable or pm["is_stale"])
     if ineligible:
         timing = 0
+    final = None if ineligible else composite(company, market, timing)
     if ineligible:
         action, label, action_reason = "REVIEW", "평가 보류 - 거래·데이터 확인 필요", "거래 가능 여부 또는 필수 데이터가 확인되기 전에는 매수 판단을 하지 않습니다."
     elif pm["above_ema50"] is False and pm["obv_down"]:
@@ -140,11 +141,14 @@ def calculate(score, metric, prices, rs12_scores, rs6_scores, market_regime):
         action, label, action_reason = "TRADE_ONLY", "중장기 보유 부적합", "회사 품질이 낮아 장기 보유 관점의 매수 후보에서는 제외합니다."
     elif market < 55:
         action, label, action_reason = "WAIT_MARKET", "관심 유지 - 시장 검증 대기", "회사와 단기 흐름은 볼 만하지만 상대강도와 하락 방어력이 아직 부족합니다."
-    elif timing >= required_timing:
-        action, label, action_reason = "BUY_CANDIDATE", "분할 매수 후보", f"추세·수급·돌파·과열 억제 조건이 양호하며, 시장 국면 대비 진입 기준({required_timing}점)을 충족합니다."
+    elif final >= required_score + 7 and timing >= 75:
+        action, label, action_reason = "STRONG_BUY_CANDIDATE", "우선 분할 매수 후보", f"종합 점수가 시장 국면 대비 진입 기준({required_score}점)을 크게 넘고, 매수 타이밍도 75점 이상입니다."
+    elif final >= required_score:
+        action, label, action_reason = "BUY_CANDIDATE", "분할 매수 후보", f"회사 품질·시장 검증·매수 타이밍을 합친 종합 점수가 시장 국면 대비 진입 기준({required_score}점)을 충족합니다."
+    elif final >= required_score - 3:
+        action, label, action_reason = "BUY_WATCH", "분할 매수 관심", f"종합 점수가 진입 기준({required_score}점)에 거의 근접해 조건 충족 여부를 조금 더 확인할 구간입니다."
     elif timing >= 50:
-        action, label, action_reason = "WATCH", "관찰 유지 - 매수 조건 미충족", f"즉시 매수할 근거는 부족하지만 추세가 개선되는지 계속 확인할 구간입니다. (시장 대비 진입 기준: {required_timing}점)"
+        action, label, action_reason = "WATCH", "관찰 유지 - 매수 조건 미충족", f"종합 점수가 시장 국면 대비 진입 기준({required_score}점)에 아직 못 미쳐 조건 충족 여부를 더 확인합니다."
     else:
-        action, label, action_reason = "WAIT", f"매수 대기 - 진입 기준 미충족 ({required_timing}점 필요)", f"추세·수급·돌파 조건이 부족하거나 시장 상황이 약세여서 진입하지 않습니다. (현재 {timing}점 / 기준 {required_timing}점)"
-    final = None if ineligible else composite(company, market, timing)
+        action, label, action_reason = "WAIT", f"매수 대기 - 진입 기준 미충족 ({required_score}점 필요)", f"종합 점수가 시장 국면 대비 진입 기준에 못 미쳐 진입하지 않습니다. (현재 {final or 0:.1f}점 / 기준 {required_score}점)"
     return {"company": round(company, 1), "market": round(market, 1), "timing": timing, "timing_base": round(timing_base, 1), "composite": final, "adjustment": 0, "valuation_status": valuation_status, "action": action, "label": label, "action_reason": action_reason, "financial_status": financial_status, "metrics": pm}

@@ -65,20 +65,20 @@
 
         <!-- HERO CARD (Circular Gauge & Summary columns) -->
         <section class="panel overflow-hidden mb-5">
-          <div class="grid md:grid-cols-[240px_1fr] gap-6 p-5 md:p-6 bg-white border-b border-slate-100">
+          <div class="grid md:grid-cols-[290px_1fr] gap-6 p-5 md:p-6 bg-white border-b border-slate-100">
             <!-- Left Side: Circular Gauge -->
             <div class="flex flex-col items-center text-center border-r-0 md:border-r border-slate-100 md:pr-6">
               <div class="relative w-36 h-36 flex items-center justify-center">
                 <svg viewBox="0 0 148 148" class="w-full h-full transform -rotate-90">
                   <!-- Grey track -->
                   <circle cx="74" cy="74" r="60" fill="none" stroke="#e2e8f0" stroke-width="12" />
-                  <!-- Mint active gauge -->
+                  <!-- Dynamic active gauge -->
                   <circle
                     cx="74"
                     cy="74"
                     r="60"
                     fill="none"
-                    stroke="#12b8a6"
+                    :stroke="gaugeStrokeColor"
                     stroke-width="12"
                     stroke-linecap="round"
                     :stroke-dasharray="gaugeDashArray"
@@ -91,17 +91,22 @@
                   <span class="text-[11px] text-slate-400 font-bold mt-1">/ 100점</span>
                 </div>
               </div>
-              <div class="mt-4">
-                <span class="rounded-full bg-mint/10 px-3.5 py-1 text-sm font-extrabold text-mint">
-                  {{ report.score.verdict }}
-                </span>
+              <div class="relative mt-4 flex items-center justify-center">
+                <div class="relative inline-flex items-center">
+                  <span class="rounded-full px-5 py-2 text-base font-extrabold" :class="actionBadgeClass">
+                    {{ actionLabelText }}
+                  </span>
+                  <button
+                    class="absolute left-full ml-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-300 active:scale-95"
+                    type="button"
+                    aria-label="액션 단계 설명 보기"
+                    title="액션 단계 기준 보기"
+                    @click="showActionGuide = true"
+                  >
+                    ?
+                  </button>
+                </div>
               </div>
-              <p class="mt-2 text-xs font-bold text-slate-500">
-                {{ report.score.signal }} · {{ report.score.consensus || "컨센서스 없음" }}
-              </p>
-              <p v-if="report.score.warning" class="mt-2 text-[11px] font-bold text-slate-400 max-w-[200px]">
-                {{ report.score.warning }}
-              </p>
             </div>
 
             <!-- Right Side: Report Highlights & Cautions -->
@@ -150,9 +155,8 @@
           <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p class="text-sm font-extrabold text-slate-900">종합 {{ formatScore(report.score.total_score) }}점의 구성</p>
-              <p class="mt-1 text-xs font-bold text-slate-400">회사 품질·시장 검증·매수 타이밍을 기하평균으로 결합하고 밸류에이션을 마지막에 조정합니다.</p>
+              <p class="mt-1 text-xs font-bold text-slate-400">회사 품질·시장 검증·매수 타이밍을 기하평균으로 결합합니다.</p>
             </div>
-            <span class="badge bg-slate-900 text-white">{{ report.score.action_label }}</span>
           </div>
           <div class="grid gap-3 md:grid-cols-3">
             <RouterLink :to="{ name: 'metric-detail', params: { ticker: report.stock.ticker, section: 'score', index: 0 } }" class="panel block border border-emerald-100 p-4 transition hover:border-emerald-400">
@@ -171,7 +175,6 @@
               <p class="mt-2 text-xs font-bold leading-5 text-slate-500">EMA 추세, 수급, 신고가 돌파, 과열 억제를 반영합니다.</p>
             </RouterLink>
           </div>
-          <p class="mt-3 text-xs font-bold text-slate-500">밸류에이션 조정 {{ report.score.valuation_adjustment >= 0 ? '+' : '' }}{{ formatScore(report.score.valuation_adjustment) }}점 · 재무 데이터 {{ report.score.financial_data_status === 'verified' ? '검증 완료' : '부분 반영' }}</p>
         </section>
 
         <!-- Legacy score-card presentation is retained only for old snapshots. -->
@@ -378,8 +381,8 @@
               <div class="panel p-5 bg-white">
                 <div>
                   <p class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-mint">Decision Framework</p>
-                  <h4 class="mt-1 text-lg font-extrabold text-slate-900">V4 종합 판단</h4>
-                  <p class="mt-1 text-xs font-bold leading-5 text-slate-400">세 축을 기하평균으로 결합하고, 밸류 조정과 위험 신호를 마지막에 적용합니다.</p>
+                  <h4 class="mt-1 text-lg font-extrabold text-slate-900">종합 판단</h4>
+                  <p class="mt-1 text-xs font-bold leading-5 text-slate-400">세 축을 기하평균으로 결합하고, 위험 신호를 마지막에 확인합니다.</p>
                 </div>
 
                 <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
@@ -655,6 +658,61 @@
         <p class="mt-6 rounded-lg bg-slate-100 p-4 text-xs font-bold text-slate-500 leading-relaxed">{{ report.investmentNotice }}</p>
       </template>
     </div>
+
+    <div v-if="showActionGuide" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm" @click.self="showActionGuide = false">
+      <div class="panel w-full max-w-2xl overflow-hidden bg-white p-6 shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <h3 class="text-xl font-extrabold text-slate-950">AlphaPick 액션 단계 가이드</h3>
+          <button class="text-lg font-extrabold text-slate-400 hover:text-slate-600" type="button" @click="showActionGuide = false">✕</button>
+        </div>
+
+        <div class="mt-5 max-h-[60vh] space-y-6 overflow-y-auto pr-2 text-sm">
+          <section>
+            <h4 class="border-l-4 border-mint pl-3 font-extrabold text-slate-950">매수 판단 단계</h4>
+            <div class="mt-3 grid gap-3">
+              <div class="rounded-lg border border-mint/50 bg-mint/20 p-4">
+                <div class="font-extrabold text-slate-950">우선 분할 매수 후보</div>
+                <p class="mt-1 leading-6 text-slate-500">종합점수가 시장 기준을 크게 넘고, 매수 타이밍도 75점 이상인 상위 후보입니다.</p>
+              </div>
+              <div class="rounded-lg border border-mint/40 bg-mint/15 p-4">
+                <div class="font-extrabold text-slate-950">분할 매수 후보</div>
+                <p class="mt-1 leading-6 text-slate-500">회사 품질·시장 검증·매수 타이밍을 합친 종합점수가 현재 시장 국면의 진입 기준을 충족한 상태입니다.</p>
+              </div>
+              <div class="rounded-lg border border-mint/30 bg-mint/10 p-4">
+                <div class="font-extrabold text-slate-950">분할 매수 관심</div>
+                <p class="mt-1 leading-6 text-slate-500">진입 기준에 거의 근접했지만, 조건 충족 여부를 조금 더 확인할 구간입니다.</p>
+              </div>
+              <div class="rounded-lg border border-mint/20 bg-mint/5 p-4">
+                <div class="font-extrabold text-slate-950">관찰 유지 / 매수 대기</div>
+                <p class="mt-1 leading-6 text-slate-500">종합점수나 핵심 조건이 아직 부족해 신규 진입보다 추적 관찰이 우선입니다.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h4 class="border-l-4 border-rose-400 pl-3 font-extrabold text-slate-950">위험 우선 단계</h4>
+            <div class="mt-3 grid gap-3">
+              <div class="rounded-lg border border-rose-200 bg-rose-50/50 p-4">
+                <div class="font-extrabold text-rose-950">매수 금지</div>
+                <p class="mt-1 leading-6 text-slate-500">하락 추세 지속, 심각한 데이터 이상, 또는 극도로 낮은 품질로 인해 신규 진입을 전면 제한하는 단계입니다.</p>
+              </div>
+              <div class="rounded-lg border border-rose-100 bg-rose-50/20 p-4">
+                <div class="font-extrabold text-rose-950">추격 매수 금지</div>
+                <p class="mt-1 leading-6 text-slate-500">회사의 기초 체력은 우수하나, 주가가 급격히 과열되어 가격 조정을 기다리며 추격 매수를 금지하는 단계입니다.</p>
+              </div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div class="font-extrabold text-slate-950">점수보다 먼저 적용되는 조건</div>
+                <p class="mt-1 leading-6 text-slate-500">하락 추세, 과열, 거래·데이터 이상, 낮은 회사 품질이나 시장 검증은 종합점수보다 먼저 반영되어 매수 금지 또는 추격 매수 금지 결정을 내립니다.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="mt-6 flex justify-end border-t border-slate-100 pt-4">
+          <button type="button" class="btn-primary px-6" @click="showActionGuide = false">가이드 닫기</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -684,6 +742,7 @@ const watchlistLoading = ref(false);
 const aiComment = ref(null);
 const aiLoading = ref(false);
 const aiError = ref("");
+const showActionGuide = ref(false);
 const newsPayload = ref(null);
 const newsLoading = ref(false);
 const newsError = ref("");
@@ -717,7 +776,16 @@ const stockThemes = computed(() => {
 
 const aiLoadingLabel = computed(() => (aiComment.value ? "다시 보기" : "AI 분석 보기"));
 
+const actionLabelText = computed(() => report.value?.score?.action_label || report.value?.score?.verdict || "평가 보류");
+
 const memeComment = computed(() => {
+  if (aiLoading.value && !aiComment.value) {
+    return {
+      headline: "AI 코멘트 불러오는 중",
+      details: ["잠시만 기다려주세요."],
+    };
+  }
+
   if (aiComment.value?.positive) {
     return {
       headline: aiComment.value.positive,
@@ -1052,6 +1120,20 @@ const quadrantLabel = computed(() => {
   if (company >= componentThreshold && timing < componentThreshold) return "좋은 회사·타이밍 대기";
   if (company < componentThreshold && timing >= componentThreshold) return "타이밍은 좋지만 회사 가치 확인";
   return "회사 가치와 타이밍 모두 70점 미만";
+});
+
+const gaugeStrokeColor = computed(() => {
+  const score = Number(report.value?.score?.total_score || 0);
+  if (score >= 70) return "#12b8a6"; // mint
+  if (score >= 50) return "#f59e0b"; // yellow (amber-500)
+  return "#f43f5e"; // red (rose-500)
+});
+
+const actionBadgeClass = computed(() => {
+  const score = Number(report.value?.score?.total_score || 0);
+  if (score >= 70) return "bg-mint/10 text-mint";
+  if (score >= 50) return "bg-amber-500/10 text-amber-600";
+  return "bg-rose-50 text-rose-600";
 });
 
 const gaugeDashArray = computed(() => {
@@ -1390,6 +1472,7 @@ function uniqueRows(rows) {
 
 async function loadAiComment(options = {}) {
   aiLoading.value = true;
+  aiComment.value = null;
   if (!options.silent) aiError.value = "";
   try {
     const response = await api.post(`/stocks/${props.ticker}/ai-comment/`, { risk_type: "neutral" });

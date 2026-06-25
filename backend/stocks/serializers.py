@@ -26,6 +26,8 @@ class StockSummarySerializer(serializers.ModelSerializer):
     action_signal = serializers.SerializerMethodField()
     action_label = serializers.SerializerMethodField()
     financial_data_status = serializers.SerializerMethodField()
+    market_cap = serializers.SerializerMethodField()
+    avg_trading_value = serializers.SerializerMethodField()
 
     class Meta:
         model = Stock
@@ -57,6 +59,8 @@ class StockSummarySerializer(serializers.ModelSerializer):
             "action_signal",
             "action_label",
             "financial_data_status",
+            "market_cap",
+            "avg_trading_value",
         )
 
     def get_theme_links(self, obj):
@@ -158,6 +162,16 @@ class StockSummarySerializer(serializers.ModelSerializer):
     def get_financial_data_status(self, obj):
         score = getattr(obj, "prefetched_latest_score", None) or obj.scores.first()
         return score.financial_data_status if score else "partial"
+
+    def get_market_cap(self, obj):
+        metric = obj.financial_metrics.first()
+        return metric.market_cap if metric else None
+
+    def get_avg_trading_value(self, obj):
+        metric = obj.financial_metrics.first()
+        if metric and metric.payload:
+            return metric.payload.get("avg_trading_value_20")
+        return None
 
 
 class WatchlistFolderSerializer(serializers.ModelSerializer):

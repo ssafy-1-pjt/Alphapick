@@ -24,9 +24,6 @@
           <span class="mt-1 block text-xs font-medium text-slate-500">8자 이상 입력해 주세요.</span>
           <span v-if="touched.password && errors.password" class="mt-1 block text-xs font-bold text-red-600">{{ errors.password }}</span>
         </label>
-        <label class="block text-sm font-bold text-slate-700 md:col-span-2">투자 성향
-          <select v-model="form.risk_type" class="field mt-2"><option value="neutral">중립형: 회사 가치와 진입 타이밍을 균형 있게 반영</option><option value="aggressive">공격형: 주도주와 타이밍을 더 중시</option><option value="stable">안정형: 회사 가치와 신뢰도를 더 중시</option></select>
-        </label>
       </div>
 
       <p v-if="formError" class="mt-4 text-sm font-bold text-red-600">{{ formError }}</p>
