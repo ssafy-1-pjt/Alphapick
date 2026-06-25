@@ -1,6 +1,6 @@
 <template>
   <section class="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_0,#f6f8fb_36%,#eef3f7_100%)]">
-    <div class="mx-auto w-[min(1520px,calc(100%-16px))] py-5">
+    <div class="w-full px-20 py-5">
       <div class="grid gap-4 xl:grid-cols-[236px_1fr]">
         <aside class="panel h-fit overflow-hidden xl:sticky xl:top-20">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
