@@ -144,9 +144,9 @@
                     <td class="px-3 py-4 font-extrabold tabular-nums text-blue-700">{{ formatScore(stock.market_validation_score) }}</td>
                     <td class="px-3 py-4 font-extrabold tabular-nums text-amber-700">{{ formatScore(stock.timing_score) }}</td>
                     <td class="px-5 py-4">
-                      <div v-if="stock.key_reason || stock.reason" class="flex flex-wrap gap-1.5">
+                      <div v-if="stock.key_reason" class="flex flex-wrap gap-1.5">
                         <span
-                          v-for="(tag, i) in parseReasons(stock.key_reason || stock.reason)"
+                          v-for="(tag, i) in parseReasons(stock.key_reason)"
                           :key="i"
                           class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold break-keep"
                           :class="tag.type === 'rs'
