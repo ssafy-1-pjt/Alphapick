@@ -150,5 +150,5 @@ def calculate(score, metric, prices, rs12_scores, rs6_scores, market_regime):
     elif timing >= 50:
         action, label, action_reason = "WATCH", "관찰 유지 - 매수 조건 미충족", f"종합 점수가 시장 국면 대비 진입 기준({required_score}점)에 아직 못 미쳐 조건 충족 여부를 더 확인합니다."
     else:
-        action, label, action_reason = "WAIT", f"매수 대기 - 진입 기준 미충족 ({required_score}점 필요)", f"종합 점수가 시장 국면 대비 진입 기준에 못 미쳐 진입하지 않습니다. (현재 {final or 0:.1f}점 / 기준 {required_score}점)"
+        action, label, action_reason = "WAIT", "매수 대기 - 진입 기준 미충족", f"종합 점수가 시장 국면 대비 진입 기준에 못 미쳐 진입하지 않습니다. (현재 {final or 0:.1f}점 / 기준 {required_score}점)"
     return {"company": round(company, 1), "market": round(market, 1), "timing": timing, "timing_base": round(timing_base, 1), "composite": final, "adjustment": 0, "valuation_status": valuation_status, "action": action, "label": label, "action_reason": action_reason, "financial_status": financial_status, "metrics": pm}

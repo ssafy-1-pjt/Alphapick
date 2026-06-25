@@ -1,6 +1,6 @@
 # AlphaPick
 
-> 국내 주식 종목을 정량적으로 평가하고, 회사 품질·시장 검증·매수 타이밍 세 축의 점수를 기반으로 투자 성향별 포트폴리오를 구성하는 분석 서비스
+> 국내 주식 종목을 정량적으로 평가하고, 회사 품질·시장 검증·매수 타이밍 세 축의 점수를 기반으로 종목을 검색 및 스크리닝하는 정량 분석 서비스
 
 [서비스 바로가기][링크 추가 필요] | [시연 영상][링크 추가 필요] | [API 문서](docs/API.md)
 
@@ -51,9 +51,9 @@
 
 ### 1.1 프로젝트 소개
 
-AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**, **매수 타이밍(T)** 세 축으로 분리 평가한 뒤, 투자 성향별 편입 허들을 적용해 포트폴리오를 구성하는 정량 분석 서비스입니다.
+AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**, **매수 타이밍(T)** 세 축으로 분리 평가하여, 종합 점수와 정량 분석 데이터 기반으로 종목을 스크리닝하고 분석 리포트를 제공하는 서비스입니다.
 
-사용자는 단순히 "추천 종목"을 받는 것이 아니라, 각 종목이 **왜 편입되었는지** 점수·지표·매매 신호 근거를 확인할 수 있습니다. 종목 리포트에서는 가격 차트, 기술/재무 지표, 뉴스·공시, 생성형 AI 코멘트를 종합적으로 제공합니다.
+사용자는 단순히 정성적 "추천 종목"을 받는 것이 아니라, 각 종목의 세부 평가 영역이 **왜 해당 점수를 받았는지** 점수·지표·매매 신호 근거를 명확하게 확인할 수 있습니다. 종목 리포트에서는 가격 차트, 기술/재무 지표, 뉴스·공시, 생성형 AI 코멘트를 종합적으로 제공합니다.
 
 ### 1.2 개발 배경
 
@@ -61,15 +61,15 @@ AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**,
 |-----------|-----------------|
 | 종목 추천 서비스가 근거를 충분히 설명하지 않음 | 점수 카드, 핵심 사유, 매매 신호 워터폴을 투명하게 공개 |
 | 회사 가치와 매수 타이밍을 혼동하기 쉬움 | Q / M / T 세 축을 독립 계산 후 가중 기하평균으로 합산 |
-| 하나의 기준으로 모든 투자자를 다룸 | 공격형·중립형·안정형 성향별 편입 허들과 현금 비중 분리 적용 |
-| 감정 기반 투자 비중 결정 | 섹터 쏠림 방지, 시장 국면 기반 현금 비중을 규칙으로 산출 |
+| 복잡한 수치와 지표의 해석 장벽 | Q/M/T 세부 점수화 및 생성형 AI의 직관적 해석 코멘트 제공 |
+| 감정이나 소문에 휩쓸리기 쉬운 투자 | 객관적인 정량 데이터 및 규칙 기반 스크리닝 환경 구축 |
 
 ### 1.3 핵심 가치
 
 1. **투명한 근거 제공** — 종합 점수뿐 아니라 Q/M/T 세부 점수, 매매 신호 워터폴, 경고 사유를 종목 리포트에서 공개합니다.
-2. **성향별 맞춤 포트폴리오** — 공격형·중립형·안정형에 따라 편입 허들, 종목 비중, 현금 비중이 달라집니다.
+2. **다차원 정량 스크리닝** — 회사 품질(Q), 시장 검증(M), 매수 타이밍(T) 세 축을 독립 정렬 및 필터링할 수 있어 사용자 취향에 부합하는 종목을 탐색할 수 있습니다.
 3. **정량 알고리즘과 생성형 AI 분리** — 점수와 판단은 규칙 기반 알고리즘이 결정하고, 생성형 AI는 결과를 자연어로 설명하는 역할만 합니다.
-4. **데이터 기반 위험 관리** — Z-Score 과열 할인, EMA 하향 이탈 감지, 섹터 Cap 제한, 시장 국면별 현금 비중 등 다층 위험 보정을 적용합니다.
+4. **데이터 기반 위험 관리** — Z-Score 과열 할인, EMA 하향 이탈 감지 등 다층 위험 보정을 적용합니다.
 5. **배치 수집 → DB 저장 → API 제공** — 프론트엔드가 외부 API를 직접 호출하지 않아 외부 장애가 화면 전체 장애로 확산되지 않습니다.
 
 ### 1.4 주요 사용자
@@ -78,7 +78,7 @@ AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**,
 |--------|-------------|----------|
 | 초보 투자자 | 여러 지표를 직접 해석하기 어려움 | 통합 점수, 매매 신호, 생성형 AI 코멘트로 쉬운 해석 제공 |
 | 경험 있는 투자자 | 후보 종목을 빠르게 압축하고 싶음 | Q/M/T 독립 정렬, 섹터·테마 필터, 조건 기반 종목 필터링 |
-| 포트폴리오 관리자 | 감정이 아닌 규칙 기반 비중 결정 | 성향별 허들, 섹터 Cap, 현금 비중 정책 기반 비중 산출 |
+| 데이터 기반 투자자 | 객관적인 기준을 바탕으로 분석 진행 | 정량 점수 엔진과 상세 지표(EMA, BB, OBV, 재무비율 등) 직접 확인 |
 
 ---
 
@@ -86,8 +86,7 @@ AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**,
 
 | 구분 | 목표 기능 | 실제 구현 내용 | 구현 상태 | 관련 코드 |
 |------|----------|--------------|----------|----------|
-| 핵심 기능 | 기본 대시보드 | 기준일, 투자 성향 선택, 편입 종목 TOP 15 표시 | ✅ 완료 | `HomeView.vue` |
-| 핵심 기능 | 오늘의 포트폴리오 | 편입 종목 전체 테이블, 점수, 비중, 핵심 사유 | ✅ 완료 | `HomeView.vue` |
+| 핵심 기능 | 기본 대시보드 | 섹터·테마 및 다양한 조건(검색, 점수 필터, 정렬)에 기반한 종목 스크리닝 목록 표시 | ✅ 완료 | `HomeView.vue` |
 | 핵심 기능 | 종목 검색 | 종목명/티커 검색, 점수 필터, 섹터·테마 패널 | ✅ 완료 | `HomeView.vue` |
 | 핵심 기능 | 종목 리포트 | 가격 차트, 점수 카드, 기술/재무 지표, 뉴스/공시 | ✅ 완료 | `StockReportView.vue` |
 | 데이터 수집 | pykrx 기반 가격/재무 수집 | KOSPI/KOSDAQ OHLCV, 재무 지표, 기술 지표 계산 | ✅ 완료 | `seed_pykrx.py` |
@@ -95,56 +94,42 @@ AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**,
 | 데이터 수집 | 뉴스·공시 수집 | 네이버 뉴스 API + OpenDART 공시 수집 및 감성 분석 | ✅ 완료 | `refresh_news_sentiment.py` |
 | 데이터 수집 | 섹터·테마 분류 | 사용자 제공 테마 추출본 기반 매핑 + 내부 보정 | ✅ 완료 | `seed_themes.py` |
 | 추천 기능 | V4 점수 엔진 | Q/M/T 독립 계산, 가중 기하평균, 매매 신호 워터폴 | ✅ 완료 | `v4_scoring.py` |
-| 추천 기능 | 성향별 포트폴리오 | 3종 성향 허들, 현금 비중, 섹터 Cap 적용 | ✅ 완료 | `services.py` |
+| 추천 기능 | 성향별 포트폴리오 | 3종 성향 허들, 현금 비중, 섹터 Cap 적용 | ❌ 제외 | 기획 및 화면에서 제외 |
 | AI 기능 | AI 코멘트 | 로컬 fallback + GMS API 기반 강점/약점/행동 3줄 생성 | ✅ 완료 | `services.py` |
 | AI 기능 | AI 헤드라인 선택 | 카테고리별 후보 문구 중 종목 데이터에 맞는 문구를 AI가 선택 | ✅ 완료 | `ai_headlines.py` |
 | 사용자 기능 | 로그인/회원가입/마이페이지 | JWT 인증, 프로필 수정, 프로필 이미지 | ✅ 완료 | `accounts/` |
 | 사용자 기능 | 관심 종목 | 폴더 구조 관심 종목 추가/삭제 | ✅ 완료 | `WatchlistView.vue` |
 | 사용자 기능 | 커뮤니티 | 종목별 게시글, 댓글, 대댓글, 좋아요, 팔로우, 알림 | ✅ 완료 | `community/` |
 | 사용자 기능 | 비속어 필터링 | 게시글·댓글 작성 시 욕설/비속어 차단 | ✅ 완료 | `moderation.py` |
-| 분석 기능 | 백테스트 | KOSPI 벤치마크 대비 포트폴리오 수익률 비교 | ✅ 완료 (API만) | `services.py` |
+| 분석 기능 | 백테스트 | KOSPI 벤치마크 대비 포트폴리오 수익률 비교 | ❌ 제외 | 기획 및 화면에서 제외 |
 | 배포 | 서비스 배포 | 배포 환경 구성 | 미구현 | — |
 | 추가 기능 | 실시간 시세 연동 | 실시간 가격 스트리밍 | 미구현 | — |
 | 추가 기능 | OpenDART 현금흐름 보강 | Q 점수의 현금흐름 항목을 실제 데이터로 채움 | 설계 완료 | `v4_scoring.py` L99 |
 
-> 백테스트 화면은 기획에 포함되어 있었으나 사용자 화면에서 제거되었으며, API(`/api/portfolio/backtest/`)는 백엔드에 존재합니다.
-
----
+> ⚠️ **알림:** 투자성향 설정, 포트폴리오 구성(비중 분배, 현금 비중, 섹터 Cap 등), 백테스트 기능은 최종 기획에서 제외되었으며, 현재는 종목 평가 및 스크리닝 중심의 분석으로 재구성되었습니다.
 
 ## 3. 주요 기능
 
-### 3.1 기본 대시보드 및 오늘의 포트폴리오
+### 3.1 기본 대시보드 및 종목 스크리닝
 
-사용자가 서비스에 접속하면 바로 확인할 수 있는 메인 화면입니다.
+사용자가 서비스에 접속하면 마주하는 메인 화면으로, 전체 1,115개 종목을 다양한 조건으로 정렬 및 필터링하여 탐색할 수 있습니다.
 
 **사용 흐름**
 
 1. 사용자가 `/`에 접속합니다.
-2. 프론트엔드가 `GET /api/portfolio/today/?risk_type=neutral`을 호출합니다.
-3. 백엔드가 최신 점수 데이터로 성향별 포트폴리오를 실시간 계산합니다.
-4. 데이터 기준일, 투자 성향 선택, 편입 종목 상위 15개가 카드와 테이블로 표시됩니다.
+2. 프론트엔드가 테마 목록(`GET /api/themes/`)과 전체 종목 목록(`GET /api/stocks/`)을 호출합니다.
+3. 왼쪽 패널에서 섹터 및 2차 테마별로 종목을 필터링할 수 있습니다.
+4. 검색창에서 종목명/티커 검색, 최소 종합 점수(90/80/70/60점 이상) 필터, 정렬 기준(종합 점수, 회사 품질, 시장 검증, 매수 타이밍, 밸류에이션 조정)을 적용할 수 있습니다.
 
 **핵심 처리**
 
-- 입력: 투자 성향(공격형/중립형/안정형)
-- 처리: 허들 통과 종목 선정 → 점수 비례 비중 배분 → 섹터 Cap 적용 → 현금 비중 결정
-- 출력: 편입 종목 목록(점수, 비중, 핵심 사유), 관찰 후보 TOP 5, 현금 비중
-- 관련 API: `GET /api/portfolio/today/`
-- 구현 상태: 완료
-
-### 3.2 종목 검색 및 필터링
-
-1,115개 종목을 점수, 섹터 그룹, 2차 테마로 필터링하고 정렬합니다.
-
-**핵심 처리**
-
-- 입력: 종목명/티커 검색어, 최소 점수, 섹터 그룹, 2차 테마, 정렬 기준
-- 처리: DB 쿼리 + 점수 기반 정렬 (종합/회사/시장/타이밍/밸류에이션/시가총액)
-- 출력: 페이지네이션된 종목 목록
+- 입력: 검색어, 최소 종합 점수, 정렬 옵션, 선택된 섹터/테마
+- 처리: Django ORM 기반 동적 쿼리 필터링 및 점수/정렬 순 정렬
+- 출력: 필터링 및 정렬된 종목 목록 테이블 (순위, 종목명, 코드, 섹터, 테마, 시가총액, 거래대금, 종합 점수, 세부 점수, 핵심 사유)
 - 관련 API: `GET /api/stocks/`, `GET /api/themes/`
 - 구현 상태: 완료
 
-### 3.3 종목 리포트
+### 3.2 종목 리포트
 
 개별 종목의 분석 결과를 종합적으로 확인하는 상세 페이지입니다.
 
@@ -226,18 +211,14 @@ JWT 기반 인증과 사용자 정보 관리를 제공합니다.
 ```mermaid
 flowchart LR
     A["사용자 접속"] --> B["기본 대시보드 (/)"]
-    B --> C{"투자 성향 선택"}
-    C -->|중립형/공격형/안정형| D["포트폴리오 재조회"]
-    D --> E["편입 종목 확인"]
-    E --> F["종목 클릭"]
+    B --> L["종목 검색 및 스크리닝"]
+    L --> M["검색어, 점수, 테마 필터 및 정렬 옵션 적용"]
+    M --> F["종목 클릭"]
     F --> G["종목 리포트"]
     G --> H["차트 · 점수 · 지표 확인"]
     G --> I["AI 코멘트 요청"]
     G --> J["뉴스 · 공시 확인"]
     G --> K["커뮤니티 이동"]
-    B --> L["종목 검색"]
-    L --> M["필터/정렬 적용"]
-    M --> F
 ```
 
 ---
@@ -285,7 +266,6 @@ flowchart TB
         API["REST API Layer"]
         Service["Service Layer"]
         V4["V4 Scoring Engine"]
-        Portfolio["Portfolio Engine"]
         AIService["AI Comment Service"]
     end
 
@@ -315,7 +295,6 @@ flowchart TB
     API --> Service
     Service --> DB
     Service --> V4
-    Service --> Portfolio
     Service --> AIService
     AIService --> GMS
 
@@ -337,10 +316,10 @@ flowchart TB
 |------|------|
 | **프론트엔드** | SPA 라우팅, API 호출, JWT 토큰 관리, 차트 렌더링, 반응형 UI |
 | **API Layer** | URL 라우팅, 인증 검사, 시리얼라이저 변환, 페이지네이션 |
-| **Service Layer** | 포트폴리오 계산, 종목 리포트 조합, AI 코멘트 생성, 백테스트 산출 |
+| **Service Layer** | 종목 상세 정보 및 스크리닝 목록 조합, AI 코멘트 생성 |
 | **V4 Scoring Engine** | Q/M/T 독립 점수 계산, 가중 기하평균, 매매 신호 워터폴 |
 | **배치 수집** | 외부 데이터 수집 → 정제 → 기술 지표 계산 → DB 저장 |
-| **데이터베이스** | 종목·가격·재무·점수·포트폴리오·사용자·커뮤니티 데이터 영구 저장 |
+| **데이터베이스** | 종목·가격·재무·점수·사용자·커뮤니티 데이터 영구 저장 |
 
 ---
 
@@ -370,12 +349,11 @@ sequenceDiagram
     Batch->>DB: ScoreSnapshot 저장
 
     Note over User, AI: 사용자 요청 단계 (실시간)
-    User->>FE: 포트폴리오 조회
-    FE->>BE: GET /api/portfolio/today/
-    BE->>DB: 최신 점수 조회
-    BE->>BE: 허들 적용 · 비중 계산
-    BE-->>FE: 편입 종목 + 현금 비중
-    FE-->>User: 대시보드 렌더링
+    User->>FE: 대시보드(종목 스크리닝) 조회
+    FE->>BE: GET /api/stocks/ (필터/정렬 조건 포함)
+    BE->>DB: 종목 목록 및 스냅샷 조회
+    BE-->>FE: 페이지네이션된 종목 리스트
+    FE-->>User: 스크리닝 테이블 렌더링
 
     User->>FE: 종목 리포트 조회
     FE->>BE: GET /api/stocks/{ticker}/report/
@@ -415,7 +393,7 @@ sequenceDiagram
 
 ### 8.1 설계 원칙
 
-- **종목(Stock)을 중심으로** 가격, 재무, 점수, 포트폴리오가 1:N으로 연결됩니다.
+- **종목(Stock)을 중심으로** 가격, 재무, 점수가 1:N으로 연결됩니다.
 - **시계열 데이터**(PriceDaily, ScoreSnapshot, FinancialMetric)는 `(stock, date)` 복합 유니크 제약으로 중복을 방지합니다.
 - **테마 분류**는 ThemeGroup → Theme → StockTheme 3단계 구조로 다대다 관계를 표현합니다.
 - **커뮤니티** 데이터는 stocks 앱과 분리된 `community` 앱에 위치합니다.
@@ -435,7 +413,6 @@ erDiagram
     STOCK ||--o{ PRICE_DAILY : records
     STOCK ||--o{ FINANCIAL_METRIC : has
     STOCK ||--o{ SCORE_SNAPSHOT : scored
-    STOCK ||--o{ PORTFOLIO_ITEM : included_in
     STOCK ||--o{ STOCK_THEME : categorized
     STOCK ||--o{ WATCHLIST : watched
     STOCK ||--o{ AI_COMMENT_CACHE : cached
@@ -443,9 +420,6 @@ erDiagram
 
     THEME_GROUP ||--o{ THEME : contains
     THEME ||--o{ STOCK_THEME : links
-
-    PORTFOLIO_RUN ||--o{ PORTFOLIO_ITEM : contains
-    SCORE_SNAPSHOT ||--o{ PORTFOLIO_ITEM : referenced
 
     POST ||--o{ COMMENT : has
     POST ||--o{ POST_LIKE : receives
@@ -455,7 +429,6 @@ erDiagram
         bigint id PK
         string username UK
         string nickname UK
-        string risk_type "neutral/aggressive/stable"
         image profile_image
         datetime created_at
     }
@@ -527,28 +500,10 @@ erDiagram
         json disclosures
     }
 
-    PORTFOLIO_RUN {
-        bigint id PK
-        date base_date UK
-        float threshold
-        string rebalance_type
-        float portfolio_score
-    }
-
-    PORTFOLIO_ITEM {
-        bigint id PK
-        bigint portfolio_run_id FK
-        string stock_id FK
-        bigint score_snapshot_id FK
-        float score
-        float weight
-    }
-
     AI_COMMENT_CACHE {
         bigint id PK
         string stock_id FK
         date base_date
-        string risk_type
         text positive
         text negative
         text conclusion
@@ -564,12 +519,10 @@ erDiagram
 | `PriceDaily` | 일별 OHLCV + 기술 지표 | close_price, ema20/50/200, bb, obv | Stock 1:N | ~270K 행 |
 | `FinancialMetric` | 재무 + 현재가 | per, pbr, roe, eps_growth, debt_ratio | Stock 1:N | base_date별 |
 | `ScoreSnapshot` | V4 점수 스냅샷 | total/company/timing_score, action_signal | Stock 1:N | 매매 신호 포함 |
-| `PortfolioRun` | 포트폴리오 실행 | base_date(UK), threshold, portfolio_score | PortfolioItem 1:N | 일별 1건 |
-| `PortfolioItem` | 편입 종목·비중 | score, weight, reason | PortfolioRun + Stock | N:N 연결 |
 | `ThemeGroup` | 섹터/테마 그룹 | name(UK), icon, sort_order | Theme 1:N | 34개 |
 | `Theme` | 2차 테마 | name, (group, name) UK | StockTheme N:N | 101개 |
 | `StockTheme` | 종목-테마 연결 | is_primary, source | Stock + Theme | 1,713개 |
-| `AICommentCache` | AI 코멘트 캐시 | positive, negative, conclusion | Stock + date + risk_type UK | 재생성 방지 |
+| `AICommentCache` | AI 코멘트 캐시 | positive, negative, conclusion | Stock + date UK | 재생성 방지 |
 | `Post` | 커뮤니티 게시글 | title, content, stock(nullable FK) | User, Stock | 종목별 필터 가능 |
 | `Comment` | 댓글·대댓글 | content, parent(self FK) | Post, User | 중첩 구조 |
 | `CommunityNotification` | 알림 | kind, is_read | User, Post, Comment | 4종 알림 |
@@ -777,9 +730,6 @@ flowchart LR
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
-| GET | `/api/portfolio/today/` | 오늘의 포트폴리오 (성향별 `?risk_type=`) | 선택 |
-| GET | `/api/portfolio/history/` | 포트폴리오 이력 | 선택 |
-| GET | `/api/portfolio/backtest/` | 백테스트 수익률 비교 | 선택 |
 | GET | `/api/stocks/` | 종목 목록 (검색, 필터, 정렬) | 선택 |
 | GET | `/api/themes/` | 섹터·테마 패널 데이터 | 선택 |
 | GET | `/api/stocks/{ticker}/report/` | 종목 리포트 | 선택 |
@@ -800,34 +750,31 @@ flowchart LR
 
 ### 대표 API 요청/응답 예시
 
-**포트폴리오 조회**
+**종목 목록 조회 (스크리닝)**
 
 ```http
-GET /api/portfolio/today/?risk_type=neutral
+GET /api/stocks/?q=삼성&min_score=80&sort=composite
 ```
 
 ```json
 {
-  "baseDate": "2026-06-24",
-  "portfolioScore": 82.5,
-  "userRiskType": "neutral",
-  "riskTypeLabel": "중립형",
-  "cashWeight": 15.0,
-  "sectorCap": 30,
-  "items": [
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
     {
       "ticker": "005930",
       "name": "삼성전자",
+      "market": "KOSPI",
       "sector": "반도체",
-      "total_score": 87.0,
-      "company_score": 82.3,
-      "timing_score": 78.5,
-      "weight": 12.5,
-      "key_reason": "RS 상위 5% · 52주 신고가 근접 · 3개월 모멘텀 강세"
+      "market_cap": 213900000000000,
+      "composite_score": 86.9,
+      "company_score": 88.3,
+      "market_validation_score": 94.1,
+      "timing_score": 81.5,
+      "key_reason": "RS 98 · 52주 신고가 근접 · 3개월 모멘텀"
     }
-  ],
-  "watchCandidates": [],
-  "allocationItems": []
+  ]
 }
 ```
 
@@ -837,14 +784,14 @@ GET /api/portfolio/today/?risk_type=neutral
 POST /api/stocks/005930/ai-comment/
 Content-Type: application/json
 
-{"risk_type": "neutral"}
+{}
 ```
 
 ```json
 {
-  "positive": "이 흐름이면 그냥 눈 돌아가는 종목 😏🔥",
-  "negative": "💪 강점: 퀄리티 82.3점, 본체는 국밥...",
-  "conclusion": "⚠️ 약점: ... · 🎯 행동: 분할 매수 후보...",
+  "positive": "회사 품질 M 94.1점에 시장 검증 Q 88.3점까지 받았으니 흐름이 단단하여 든든합니다. 😏🔥",
+  "negative": "매수 타이밍 T가 81.5점이라 지금은 타이밍이 최상이라기보단 괜찮은 수준입니다.",
+  "conclusion": "분할 매수 후보로 접근하되, 한 번에 몰지 말고 신호를 쪼개서 봅시다.",
   "cached": false
 }
 ```
@@ -857,7 +804,7 @@ Content-Type: application/json
 Alphapick/
 ├── backend/
 │   ├── accounts/                사용자 모델, 인증 API, JWT
-│   │   ├── models.py            User(AbstractUser) + risk_type
+│   │   ├── models.py            User(AbstractUser)
 │   │   ├── serializers.py       회원가입/로그인/프로필 시리얼라이저
 │   │   ├── views.py             사용자 뷰
 │   │   └── urls.py, user_urls.py
@@ -870,12 +817,12 @@ Alphapick/
 │   │   ├── settings.py          DB, JWT, CORS, 외부 API 키
 │   │   └── urls.py              루트 URL 라우팅
 │   ├── stocks/                  핵심 분석 앱
-│   │   ├── models.py            Stock, PriceDaily, ScoreSnapshot 등 11개 모델
+│   │   ├── models.py            Stock, PriceDaily, ScoreSnapshot 등 9개 모델
 │   │   ├── v4_scoring.py        V4 점수 엔진 (Q/M/T 계산, 매매 신호)
-│   │   ├── services.py          포트폴리오 엔진, AI 코멘트, 백테스트
+│   │   ├── services.py          AI 코멘트
 │   │   ├── ai_headlines.py      12개 카테고리 헤드라인 템플릿
-│   │   ├── views.py             종목/포트폴리오/관심종목 API
-│   │   ├── serializers.py       리포트/포트폴리오 시리얼라이저
+│   │   ├── views.py             종목/관심종목 API
+│   │   ├── serializers.py       리포트 시리얼라이저
 │   │   └── management/commands/ Django 관리 명령어
 │   │       ├── seed_pykrx.py        pykrx 데이터 수집 + 점수 계산
 │   │       ├── seed_themes.py       테마 분류 적재
@@ -893,7 +840,7 @@ Alphapick/
 │   │   │   ├── StockChart.vue   Lightweight Charts 캔들스틱 차트
 │   │   │   └── layout/          사이드바, 헤더 등 레이아웃
 │   │   └── views/
-│   │       ├── HomeView.vue         메인 대시보드 + 포트폴리오 + 검색
+│   │       ├── HomeView.vue         메인 대시보드 + 검색
 │   │       ├── StockReportView.vue  종목 리포트 (81KB)
 │   │       ├── CommunityView.vue    커뮤니티
 │   │       ├── WatchlistView.vue    관심 종목
@@ -929,7 +876,7 @@ Git 기록에서 확인된 기여자:
 
 **담당 업무 작성 예시 (참고):**
 
-- Django 데이터 모델 및 종목 조회/포트폴리오 API 구현
+- Django 데이터 모델 및 종목 조회 API 구현
 - V4 점수 산정 로직 설계 및 매매 신호 워터폴 구현
 - pykrx 기반 외부 금융 데이터 수집 및 정제 파이프라인
 - 생성형 AI 프롬프트 설계 및 fallback 로직 구현
@@ -1099,7 +1046,7 @@ cd backend
 
 | 테스트 파일 | 범위 | 내용 |
 |------------|------|------|
-| `stocks/tests.py` | 포트폴리오 API, 종목 API, 리포트, AI 코멘트, 백테스트 | 허들 통과 검증, 비중 합계, 성향별 응답 분리, 시리즈 데이터 확인 |
+| `stocks/tests.py` | 종목 API, 리포트, AI 코멘트 | 종목 조회, 리포트 조회, AI 코멘트 생성, 시리즈 데이터 확인 |
 | `stocks/test_market_refresh.py` | 시장 데이터 갱신 | 가격 갱신 관련 유닛 테스트 |
 | `stocks/test_watchlist_folders.py` | 관심 종목 폴더 | 폴더 생성·분류 테스트 |
 | `accounts/tests.py` | 인증 | 회원가입, 로그인, 프로필 테스트 |
@@ -1214,7 +1161,7 @@ npm run build
 ### 구현 결과
 
 - 국내 1,115개 종목에 대한 정량 평가 시스템(Q/M/T 세 축)을 완성했습니다.
-- 투자 성향별 포트폴리오 구성(허들, 현금 비중, 섹터 Cap)을 자동화했습니다.
+- 종목 검색 및 조건별 스크리닝 필터링 기능을 프론트엔드와 백엔드에 완비했습니다.
 - 생성형 AI를 활용한 종목 코멘트 생성과 로컬 fallback 시스템을 구축했습니다.
 - 커뮤니티(게시글, 댓글, 팔로우, 알림) 기능을 포함한 풀스택 서비스를 완성했습니다.
 
