@@ -6,7 +6,7 @@
     </div>
   </Transition>
   <header class="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-[#0b2454]/95 text-white backdrop-blur">
-    <div class="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-4 px-4">
+    <div class="flex h-16 items-center justify-between gap-4 px-20">
       <RouterLink to="/" class="flex shrink-0 items-center gap-2 text-xl font-extrabold tracking-tight text-white" aria-label="AlphaPick 홈으로 이동">
         <img class="h-9 w-9 rounded-lg object-cover shadow-lg shadow-cyan-950/20" src="/alphapick-icon.png" alt="AlphaPick 로고" />
         AlphaPick
@@ -25,7 +25,7 @@
           </template>
         </nav>
 
-        <div class="relative">
+        <div class="relative ml-5">
           <button class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10" type="button" :aria-expanded="accountMenuOpen" aria-label="계정 메뉴" @click="accountMenuOpen = !accountMenuOpen">
             <img v-if="profileImageUrl" :src="profileImageUrl" class="h-8 w-8 rounded-full object-cover" alt="프로필 사진" />
             <span v-else-if="authStore.isAuthenticated" class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-sm font-black">{{ profileInitial }}</span>
