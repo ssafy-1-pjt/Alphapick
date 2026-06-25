@@ -93,18 +93,25 @@
 
         <div class="border-t border-slate-100 bg-slate-50/70 p-4 sm:p-5">
           <div class="flex items-center justify-between gap-3">
-            <h3 class="text-sm font-black text-slate-950">댓글</h3>
-            <button v-if="post.comments.length > commentPreviewCount" class="text-xs font-black text-mint" type="button" @click="post.commentsExpanded = !post.commentsExpanded">
+            <h3 class="text-sm font-semibold text-slate-950">댓글</h3>
+            <button v-if="post.comments.length > commentPreviewCount" class="text-xs font-semibold text-mint" type="button" @click="post.commentsExpanded = !post.commentsExpanded">
               {{ post.commentsExpanded ? "댓글 접기" : `댓글 전체 보기 (${post.comments.length})` }}
             </button>
           </div>
           <div class="mt-2 space-y-2">
             <div :id="`comment-${comment.id}`" v-for="comment in visibleComments(post)" :key="comment.id" class="scroll-mt-6 rounded-lg border border-slate-200 bg-white px-3 py-2">
               <div class="flex items-start justify-between gap-3">
-                <div>
-                  <RouterLink class="text-xs font-black text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: comment.author.id } }">{{ comment.author.display_name }}</RouterLink>
-                  <span class="ml-1 text-xs text-slate-400">{{ formatDate(comment.created_at) }}</span>
-                  <p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ comment.content }}</p>
+                <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                  <!-- Comment Author Profile Image -->
+                  <RouterLink class="mt-0.5 shrink-0" :to="{ name: 'community-user-activity', params: { userId: comment.author.id } }" :aria-label="`${comment.author.display_name} 프로필`">
+                    <img v-if="profileImageUrl(comment.author)" :src="profileImageUrl(comment.author)" class="h-8 w-8 rounded-full border border-slate-200 object-cover" :alt="`${comment.author.display_name} 프로필 사진`" />
+                    <span v-else class="flex h-8 w-8 items-center justify-center rounded-full bg-mint/10 text-xs font-bold text-mint">{{ profileInitial(comment.author) }}</span>
+                  </RouterLink>
+                  <div class="min-w-0 flex-1">
+                    <RouterLink class="text-xs font-semibold text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: comment.author.id } }">{{ comment.author.display_name }}</RouterLink>
+                    <span class="ml-1 text-xs text-slate-400">{{ formatDate(comment.created_at) }}</span>
+                    <p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ comment.content }}</p>
+                  </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
                   <button v-if="auth.isAuthenticated" class="btn-ghost min-h-0 px-2 py-1 text-xs text-mint" type="button" @click="replyingToId = replyingToId === comment.id ? null : comment.id">답글</button>
@@ -112,7 +119,21 @@
                 </div>
               </div>
               <div v-for="reply in comment.replies || []" :id="`comment-${reply.id}`" :key="reply.id" class="ml-5 mt-2 border-l-2 border-mint/20 pl-3">
-                <div class="flex items-start justify-between gap-3"><div><RouterLink class="text-xs font-black text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: reply.author.id } }">{{ reply.author.display_name }}</RouterLink><span class="ml-1 text-xs text-slate-400">{{ formatDate(reply.created_at) }}</span><p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ reply.content }}</p></div><button v-if="reply.can_delete" class="btn-ghost min-h-0 px-2 py-1 text-xs text-red-600" type="button" @click="deleteComment(post, reply)">삭제</button></div>
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                    <!-- Reply Author Profile Image -->
+                    <RouterLink class="mt-0.5 shrink-0" :to="{ name: 'community-user-activity', params: { userId: reply.author.id } }" :aria-label="`${reply.author.display_name} 프로필`">
+                      <img v-if="profileImageUrl(reply.author)" :src="profileImageUrl(reply.author)" class="h-7 w-7 rounded-full border border-slate-200 object-cover" :alt="`${reply.author.display_name} 프로필 사진`" />
+                      <span v-else class="flex h-7 w-7 items-center justify-center rounded-full bg-mint/10 text-[10px] font-bold text-mint">{{ profileInitial(reply.author) }}</span>
+                    </RouterLink>
+                    <div class="min-w-0 flex-1">
+                      <RouterLink class="text-xs font-semibold text-mint hover:underline" :to="{ name: 'community-user-activity', params: { userId: reply.author.id } }">{{ reply.author.display_name }}</RouterLink>
+                      <span class="ml-1 text-xs text-slate-400">{{ formatDate(reply.created_at) }}</span>
+                      <p class="mt-1 whitespace-pre-line text-sm leading-5 text-slate-700 break-keep text-pretty">{{ reply.content }}</p>
+                    </div>
+                  </div>
+                  <button v-if="reply.can_delete" class="btn-ghost min-h-0 px-2 py-1 text-xs text-red-600 shrink-0" type="button" @click="deleteComment(post, reply)">삭제</button>
+                </div>
               </div>
               <form v-if="auth.isAuthenticated && replyingToId === comment.id" class="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row" @submit.prevent="createReply(post, comment)">
                 <input v-model.trim="replyDrafts[comment.id]" class="field min-h-0 py-2 text-sm" placeholder="답글을 입력하세요" maxlength="600" />
