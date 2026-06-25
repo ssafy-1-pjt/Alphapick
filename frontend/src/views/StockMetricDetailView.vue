@@ -170,8 +170,13 @@ const relatedLogs = computed(() => {
   const logs = report.value?.score?.scoring_log || [];
   const title = detail.value.title;
   const keywords = keywordFor(title, props.section);
-  return logs.filter((log) => keywords.some((keyword) => log.includes(keyword)));
+  return logs.map(logText).filter((log) => keywords.some((keyword) => log.includes(keyword)));
 });
+
+function logText(log) {
+  if (typeof log === "string") return log;
+  return log?.reason || log?.label || JSON.stringify(log);
+}
 
 function buildDetail(rawItem, section, currentReport) {
   const title = rawItem.title || rawItem.label || rawItem.name || "지표";
@@ -340,15 +345,18 @@ const DetailBlock = defineComponent({
 });
 
 onMounted(async () => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 10000);
   try {
-    const response = await api.get(`/stocks/${props.ticker}/report/`);
+    const response = await api.get(`/stocks/${props.ticker}/report/`, { signal: controller.signal });
     report.value = response.data;
     if (!items.value[Number(props.index)]) {
       error.value = "요청한 상세 지표를 찾을 수 없습니다.";
     }
   } catch (err) {
-    error.value = "상세 계산 근거를 불러오지 못했습니다.";
+    error.value = err.code === "ERR_CANCELED" || err.name === "CanceledError" ? "상세 계산 근거 요청 시간이 초과되었습니다." : "상세 계산 근거를 불러오지 못했습니다.";
   } finally {
+    window.clearTimeout(timeoutId);
     loading.value = false;
   }
 });
