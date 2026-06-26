@@ -16,5 +16,5 @@ urlpatterns = [
     path("api/", include("stocks.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Always serve media files via Django view in this deployment setup
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
