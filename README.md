@@ -7,7 +7,7 @@
 **프로젝트 기간:** 2026.05.20 ~ 2026.06.25  
 **팀:** ssafy-13-pjt 3반 7조  
 **저장소:** [github.com/ssafy-1-pjt/Alphapick](https://github.com/ssafy-1-pjt/Alphapick)  
-**개발 상태:** MVP 완료 · 로컬 개발 환경 운영 중
+**개발 상태:** 배포 완료
 
 | 구분 | 기술 |
 |------|------|
