@@ -2,7 +2,7 @@
 
 > 국내 주식 종목을 정량적으로 평가하고, 회사 품질·시장 검증·매수 타이밍 세 축의 점수를 기반으로 종목을 검색 및 스크리닝하는 정량 분석 서비스
 
-[서비스 바로가기][링크 추가 필요] | [시연 영상][링크 추가 필요] | [API 문서](docs/API.md)
+[서비스 바로가기](https://alphapick.vercel.app/) |  [API 문서](docs/API.md)
 
 **프로젝트 기간:** 2026.05.20 ~ 2026.06.25  
 **팀:** ssafy-13-pjt 3반 7조  
@@ -18,9 +18,11 @@
 
 ---
 <img width="2103" height="1223" alt="스크린샷 2026-06-26 101854" src="https://github.com/user-attachments/assets/2ea89aee-92c4-4265-8f88-6da4252dd9a1" />
+<img width="2028" height="1093" alt="image" src="https://github.com/user-attachments/assets/6860db10-0715-4e96-adce-e8868ed8b780" />
 <img width="2101" height="1223" alt="스크린샷 2026-06-26 101909" src="https://github.com/user-attachments/assets/ef0597ac-f07b-4b35-97bd-9f469d9b018d" />
-<img width="1346" height="698" alt="스크린샷 2026-06-26 101933" src="https://github.com/user-attachments/assets/9197a708-2877-4ffa-9618-879177e042ee" />
 <img width="1476" height="908" alt="스크린샷 2026-06-26 101926" src="https://github.com/user-attachments/assets/a267b377-a657-4b48-8053-184bc83f71b3" />
+<img width="1368" height="763" alt="image" src="https://github.com/user-attachments/assets/c9801868-736f-44f9-a3cf-9cc918db8a75" />
+<img width="1073" height="1183" alt="image" src="https://github.com/user-attachments/assets/f3e4963b-fc6d-469e-8f77-81af645381fc" />
 <img width="1381" height="1097" alt="스크린샷 2026-06-26 101959" src="https://github.com/user-attachments/assets/dc0f235e-efa4-4ba6-abd4-10f635eb35ae" />
 <img width="1361" height="606" alt="스크린샷 2026-06-26 102017" src="https://github.com/user-attachments/assets/3acc1998-5cbe-4cfc-8c6c-10d23fc415fa" />
 <img width="1379" height="999" alt="스크린샷 2026-06-26 102209" src="https://github.com/user-attachments/assets/a17b165d-67ff-4e47-9fcd-10ff0b854418" />
