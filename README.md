@@ -4,11 +4,10 @@
 
 [서비스 바로가기](https://alphapick.vercel.app/) |  [API 문서](docs/API.md)
 
-
 **프로젝트 기간:** 2026.05.20 ~ 2026.06.25  
 **팀:** ssafy-13-pjt 3반 7조  
 **저장소:** [github.com/ssafy-1-pjt/Alphapick](https://github.com/ssafy-1-pjt/Alphapick)  
-**개발 상태:** 배포 완료
+**개발 상태:** MVP 완료 · 로컬 개발 환경 운영 중
 
 | 구분 | 기술 |
 |------|------|
@@ -19,9 +18,11 @@
 
 ---
 <img width="2103" height="1223" alt="스크린샷 2026-06-26 101854" src="https://github.com/user-attachments/assets/2ea89aee-92c4-4265-8f88-6da4252dd9a1" />
+<img width="2028" height="1093" alt="image" src="https://github.com/user-attachments/assets/6860db10-0715-4e96-adce-e8868ed8b780" />
 <img width="2101" height="1223" alt="스크린샷 2026-06-26 101909" src="https://github.com/user-attachments/assets/ef0597ac-f07b-4b35-97bd-9f469d9b018d" />
-<img width="1346" height="698" alt="스크린샷 2026-06-26 101933" src="https://github.com/user-attachments/assets/9197a708-2877-4ffa-9618-879177e042ee" />
 <img width="1476" height="908" alt="스크린샷 2026-06-26 101926" src="https://github.com/user-attachments/assets/a267b377-a657-4b48-8053-184bc83f71b3" />
+<img width="1368" height="763" alt="image" src="https://github.com/user-attachments/assets/c9801868-736f-44f9-a3cf-9cc918db8a75" />
+<img width="1073" height="1183" alt="image" src="https://github.com/user-attachments/assets/f3e4963b-fc6d-469e-8f77-81af645381fc" />
 <img width="1381" height="1097" alt="스크린샷 2026-06-26 101959" src="https://github.com/user-attachments/assets/dc0f235e-efa4-4ba6-abd4-10f635eb35ae" />
 <img width="1361" height="606" alt="스크린샷 2026-06-26 102017" src="https://github.com/user-attachments/assets/3acc1998-5cbe-4cfc-8c6c-10d23fc415fa" />
 <img width="1379" height="999" alt="스크린샷 2026-06-26 102209" src="https://github.com/user-attachments/assets/a17b165d-67ff-4e47-9fcd-10ff0b854418" />
@@ -112,6 +113,7 @@ AlphaPick은 국내 주식 종목을 **회사 품질(Q)**, **시장 검증(M)**,
 | 사용자 기능 | 관심 종목 | 폴더 구조 관심 종목 추가/삭제 | ✅ 완료 | `WatchlistView.vue` |
 | 사용자 기능 | 커뮤니티 | 종목별 게시글, 댓글, 대댓글, 좋아요, 팔로우, 알림 | ✅ 완료 | `community/` |
 | 사용자 기능 | 비속어 필터링 | 게시글·댓글 작성 시 욕설/비속어 차단 | ✅ 완료 | `moderation.py` |
+| 분석 기능 | 백테스트 | KOSPI 벤치마크 대비 포트폴리오 수익률 비교 | ❌ 제외 | 기획 및 화면에서 제외 |
 | 배포 | 서비스 배포 | 배포 환경 구성 | ✅ 완료 | Vercel (프론트) + Railway (백엔드) 연동 배포 완료 |
 | 추가 기능 | 실시간 시세 연동 | 실시간 가격 스트리밍 | 미구현 | — |
 | 추가 기능 | OpenDART 현금흐름 보강 | Q 점수의 현금흐름 항목을 실제 데이터로 채움 | 설계 완료 | `v4_scoring.py` L99 |
