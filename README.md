@@ -1053,15 +1053,30 @@ npm run build
 
 ## 17. 배포 구조
 
-현재 배포 환경은 구성되어 있지 않으며, 로컬 개발 환경에서 운영 중입니다.
+AlphaPick 서비스는 프론트엔드와 백엔드가 분리되어 각각 서버리스 및 PaaS 플랫폼에 배포되어 있으며, 실서비스가 안정적으로 연동되어 작동하고 있습니다.
 
-**목표 구조:**
+### 배포 구성 및 주소
 
-| 구성 요소 | 권장 방식 |
-|-----------|----------|
-| 프론트엔드 | Vercel (Vue/Vite 정적 빌드 배포) |
-| 백엔드 | AWS Lightsail 또는 Oracle Cloud (Nginx + Gunicorn + Django) |
-| 데이터베이스 | PostgreSQL (영구 디스크 필요) 또는 SQLite (VPS) |
+* **프론트엔드 (Frontend)**: [Vercel](https://vercel.com/)
+  * **배포 주소**: [https://alphapick.vercel.app](https://alphapick.vercel.app)
+  * **기술**: Vue 3 (Vite) SPA 정적 정렬 배포 (`vercel.json`을 통해 SPA 라우팅 새로고침 우회 처리)
+* **백엔드 (Backend)**: [Railway](https://railway.app/)
+  * **배포 주소**: [https://alphapick-production.up.railway.app](https://alphapick-production.up.railway.app)
+  * **기술**: Gunicorn + Django REST Framework (Nixpacks 기반 빌드)
+* **데이터베이스 (Database)**: SQLite (Railway Persistent Volume)
+  * **저장 위치**: Railway의 `/data` 영구 볼륨 공간에 마운트하여 컨테이너 재배포 시에도 데이터 유실 방지
+  * **설정**: `SQLITE_PATH` 환경 변수를 `/data/db.sqlite3`로 주입하여 연동
+
+### 아키텍처 및 연동 방식
+
+```mermaid
+graph TD
+    User([사용자]) -->|HTTPS| FE[Vercel Frontend]
+    User -->|API Request| BE[Railway Backend]
+    FE -->|Axios API Call| BE
+    BE -->|Read/Write| DB[(SQLite Volume)]
+    BE -->|Realtime Sync| Naver[Naver Finance / News API]
+```
 
 ---
 
